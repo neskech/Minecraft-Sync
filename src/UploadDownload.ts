@@ -2,6 +2,7 @@ import { abort } from "process"
 import { logDebug } from "./FileWatcher"
 import { areYouReallySure, tryGetArg, tryGetFileData, tryGetMcDirFromJson, userInputOnlyValid } from "./IO"
 import { download, upload } from "./Communication"
+import { uploadBulk } from "./GitCommunication"
 
 async function main() {
     const uploadOrDownlooad = tryGetArg(0)
@@ -23,12 +24,15 @@ async function main() {
         if (arg == 'up') {
             logDebug('Uploading changes to the cloud...')
 
-            const files = tryGetFileData().unwrapOrElse(() => {
-                console.error('There are no changes to upload')
-                abort()
-            })
-            
-            await upload(mcDir, files.map(f => f.name))
+            const files = tryGetFileData()
+            if (files.isSome()) {
+                logDebug('Loading files from cache and uploading...')
+                await upload(mcDir, files.unwrap().map(f => f.name))
+            }
+            else {
+                logDebug('File cache is empty, doing a bulk upload...')
+                await uploadBulk(mcDir)
+            }
         }
         else {
             logDebug('Downloading from the cloud...')

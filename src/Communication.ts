@@ -21,6 +21,9 @@ import { readFileSync } from 'fs'
 import { userInfo } from 'os'
 import { logDebug } from './FileWatcher'
 
+config()
+let drive: drive_v3.Drive
+
 function makeFullPath(file: string): string {
   return path.join(__dirname, file)
 }
@@ -75,9 +78,6 @@ async function downloadFileOfName(
     return Err((e as Error).message)
   }
 }
-
-config()
-let drive: drive_v3.Drive
 
 export async function signalPlayerOnline() {
   const result = await downloadFileOfName('playerData', '../data/misc/playerData.json')
@@ -176,6 +176,8 @@ export async function upload(
   dir: string,
   files: string[],
 ): Promise<Result<Unit, string>> {
+  deleteDirIfContents('../data/worldFiles/')
+
   /**TODO: The files here do not have nested directory paths, just names Plus you need to filter direcvtories in the watcher*/
   for (const file of files) {
     const fullPath = path.join(dir, file)
