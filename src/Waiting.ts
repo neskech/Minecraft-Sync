@@ -1,6 +1,6 @@
 
-const intervals = (timeout: number, fn: () => void): NodeJS.Timer =>
-  setInterval(fn, timeout)
+const intervals = (timeout: number, fn: () => void): number =>
+  window.setInterval(fn, timeout)
 
 async function checkIfProcessExists(processName: string): Promise<boolean> {
   const list = require('ps-list').psList()
