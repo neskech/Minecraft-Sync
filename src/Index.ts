@@ -3,7 +3,7 @@ import { existsSync, lstatSync, writeFileSync } from 'fs'
 import FileSysWatcher, { FileDescriptor, Operation, logDebug } from './FileWatcher'
 import { waitForMinecraftClose, waitForMinecraftOpen } from './Waiting'
 import { isAnotherPlayerOnline, signalPlayerOffline, signalPlayerOnline, upload } from './Communication'
-import { areYouReallySure, tryGetArg, userInputOnlyValid } from './IO'
+import { areYouReallySure, tryGetArg, userInputOnlyValid, tryGetMcDirFromJson, makeFullPath } from './IO';
 import { abort } from 'process';
 import { getOtherPlayersOnline, isOutOfSync } from './GitCommunication';
 const dialog = require('dialog')
@@ -17,6 +17,10 @@ function getMcWorldDirFromArgs(): Result<string, string> {
   if (!existsSync(name)) return Err('That directory does not exist')
 
   if (!lstatSync(name).isDirectory()) return Err('That path is not a directory')
+
+  writeFileSync(makeFullPath('../gitData/minecraftDirectory.json'), JSON.stringify({
+    directory: name
+  }))
 
   return Ok(name)
 }
@@ -77,7 +81,7 @@ function displayFileReport(files: FileDescriptor[]) {
 }
 
 async function main() {
-  const mcDir = getMcWorldDirFromArgs().unwrap()
+  const mcDir = getMcWorldDirFromArgs().mapErr((e) => tryGetMcDirFromJson().toResult().mapErr(_ => e)).unwrap()
 
   const isOutSync = (await isOutOfSync()).unwrap()
   if (isOutSync) {

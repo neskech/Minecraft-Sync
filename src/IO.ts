@@ -2,6 +2,11 @@ import { sys } from 'typescript'
 import { None, Option, Some } from './Option'
 import { readFileSync } from 'fs'
 import { FileDescriptor } from './FileWatcher'
+import { join } from 'path'
+
+export function makeFullPath(file: string): string {
+  return join(__dirname, file)
+}
 
 export function tryGetArg(index: number): Option<string> {
   index += 1
@@ -37,7 +42,7 @@ export function areYouReallySure(areYouReallys: number): boolean {
 
 export function tryGetMcDirFromJson(): Option<string> {
   try {
-    const content = readFileSync('../data/minecraftDirectory.json', { encoding: 'utf-8' })
+    const content = readFileSync(makeFullPath('../gitData/minecraftDirectory.json'), { encoding: 'utf-8' })
     const result = JSON.parse(content)
     return Option.fromNull(result?.directory)
   } catch (e) {
@@ -47,7 +52,7 @@ export function tryGetMcDirFromJson(): Option<string> {
 
 export function tryGetFileData(): Option<FileDescriptor[]> {
   try {
-    const content = readFileSync('../data/fileData.json', { encoding: 'utf-8' })
+    const content = readFileSync(makeFullPath('../data/fileData.json'), { encoding: 'utf-8' })
     const result = JSON.parse(content)
     return Option.fromNull(result?.files).filter(
       (r) =>

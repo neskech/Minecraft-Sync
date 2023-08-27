@@ -21,12 +21,9 @@ import { userInfo } from 'os'
 import { logDebug } from './FileWatcher'
 import { exec } from 'child_process'
 import { copySync } from 'fs-extra'
+import { makeFullPath } from './IO'
 
 config()
-
-function makeFullPath(file: string): string {
-  return path.join(__dirname, file)
-}
 
 function deleteDirIfContents(dir: string) {
   const toDelete = readdirSync(makeFullPath(dir))
