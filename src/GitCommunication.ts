@@ -18,7 +18,6 @@ import path from 'path'
 import { copyFile } from 'fs/promises'
 import { readFileSync } from 'fs'
 import { userInfo } from 'os'
-import { logDebug } from './FileWatcher'
 import { exec } from 'child_process'
 import { copySync } from 'fs-extra'
 import { makeFullPath } from './IO'
@@ -198,12 +197,7 @@ export async function download(dir: string): Promise<Result<Unit, string>> {
     Extract({ path: makeFullPath('../gitData/worldFiles') }),
   )
 
-  const unZipped = readdirSync(makeFullPath('../gitData/worldFiles/'))
-  for (const file of unZipped) {
-    const fullPath = makeFullPath(`../gitData/worldFiles/${file}`)
-    copySync(fullPath, `${dir}`)
-  }
-
+  copySync(makeFullPath('../gitData/worldFiles/'), dir)
   deleteDirIfContents('../gitData/worldFiles/')
 
   return Ok(unit)

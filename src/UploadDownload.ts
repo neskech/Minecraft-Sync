@@ -1,14 +1,14 @@
 import { abort } from 'process'
-import { logDebug } from './FileWatcher'
 import {
   areYouReallySure,
+  logDebug,
   tryGetArg,
-  tryGetFileData,
   tryGetMcDirFromJson,
   userInputOnlyValid,
 } from './IO'
-import { download, upload } from './Communication'
+
 import { isInSync, uploadBulk } from './GitCommunication'
+import { download } from 'express/lib/response'
 
 async function main() {
   const uploadOrDownlooad = tryGetArg(0)
@@ -40,18 +40,7 @@ async function main() {
   if (answer == 'y' && areYouReallySure(1)) {
     if (arg == 'up') {
       logDebug('Uploading changes to the cloud...')
-
-      const files = tryGetFileData()
-      if (files.isSome()) {
-        logDebug('Loading files from cache and uploading...')
-        await upload(
-          mcDir,
-          files.unwrap().map((f) => f.name),
-        )
-      } else {
-        logDebug('File cache is empty, doing a bulk upload...')
-        await uploadBulk(mcDir)
-      }
+      await uploadBulk(mcDir)
     } else {
       logDebug('Downloading from the cloud...')
       await download(mcDir)

@@ -1,8 +1,12 @@
 import { sys } from 'typescript'
 import { None, Option, Some } from './Option'
 import { readFileSync } from 'fs'
-import { FileDescriptor } from './FileWatcher'
 import { join } from 'path'
+
+
+export function logDebug(...args: any) {
+  console.log(...args, "color: #f2e449");
+}
 
 export function makeFullPath(file: string): string {
   return join(__dirname, file)
@@ -47,22 +51,6 @@ export function tryGetMcDirFromJson(): Option<string> {
     return Option.fromNull(result?.directory)
   } catch (e) {
     console.error(e)
-    return None()
-  }
-}
-
-export function tryGetFileData(): Option<FileDescriptor[]> {
-  try {
-    const content = readFileSync(makeFullPath('../data/fileData.json'), { encoding: 'utf-8' })
-    const result = JSON.parse(content)
-    return Option.fromNull(result?.files).filter(
-      (r) =>
-        'name' in r &&
-        'operation' in r &&
-        typeof r.name == 'string' &&
-        typeof r.operation == 'string',
-    )
-  } catch (e) {
     return None()
   }
 }
