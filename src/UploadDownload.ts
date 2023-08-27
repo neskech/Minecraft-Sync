@@ -7,19 +7,18 @@ import {
   userInputOnlyValid,
 } from './IO'
 
-import { isInSync, uploadBulk } from './GitCommunication'
-import { download } from 'express/lib/response'
+import { download, isInSync, uploadBulk } from './GitCommunication'
 
 async function main() {
   const uploadOrDownlooad = tryGetArg(0)
 
-  if (uploadOrDownlooad.predicate((s) => s == 'up' || s == 'down')) {
-    console.error('Valid inputs to this program are "[up, down]"')
+  if (!uploadOrDownlooad.predicate((s) => s == 'up' || s == 'down')) {
+    console.error('Valid inputs to this program are "(up, down)"')
     return
   }
 
   const mcDir = tryGetArg(1)
-    .or(tryGetMcDirFromJson())
+    .lazyOr(() => tryGetMcDirFromJson())
     .unwrapOrElse(() => {
       console.error(
         'Please provide your minecraft world directory as the second argument',

@@ -182,6 +182,11 @@ export class Option<T> {
     return o;
   }
 
+  lazyOr(o: () => Option<T>): Option<T> {
+    if (isSome_(this.data)) return this;
+    return o();
+  }
+
   and(o: Option<T>): Option<T> {
     if (isNone_(this.data)) return this;
     return o;

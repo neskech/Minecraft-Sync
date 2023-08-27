@@ -8,6 +8,7 @@ import {
   tryGetMcDirFromJson,
   makeFullPath,
   logDebug,
+  dialogBox,
 } from './IO'
 import { abort } from 'process'
 import {
@@ -39,25 +40,26 @@ function getMcWorldDirFromArgs(): Result<string, string> {
   return Ok(name)
 }
 
-async function mainProcess(mcDir: string) {
+async function mainProcess() {
   logDebug('Waiting for minecraft to open....')
 
   await waitForMinecraftOpen()
 
   const otherPlayers = await getOtherPlayersOnline()
+
   if (otherPlayers.isErr()) {
-    dialog.Err(
+    console.log(otherPlayers.unwrapErr())
+    dialogBox(
       "Can't verify that there are other players online! Your changes won't be saved",
       'Minecraft',
-      () => {},
     )
     abort()
   }
   if (otherPlayers.unwrap().length > 0) {
-    dialog.Err(
+    dialogBox(
       `(${otherPlayers.unwrap().join(', ')}) are online! Your changes won't be saved`,
       'Minecraft',
-      () => {},
+
     )
     abort()
   }
@@ -88,10 +90,10 @@ async function main() {
     return
   }
 
-  await mainProcess(mcDir)
+  await mainProcess()
 
   const noConfirmation = tryGetArg(1)
-  if (noConfirmation.isNone() || noConfirmation.unwrap() != 'noConf') {
+  if (noConfirmation.isSome() && noConfirmation.unwrap() != 'noConf') {
     logDebug('Uploading changes to the cloud...')
     await uploadBulk(mcDir)
     return
