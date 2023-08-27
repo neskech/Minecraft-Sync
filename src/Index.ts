@@ -5,7 +5,7 @@ import { waitForMinecraftClose, waitForMinecraftOpen } from './Waiting'
 import { isAnotherPlayerOnline, signalPlayerOffline, signalPlayerOnline, upload } from './Communication'
 import { areYouReallySure, tryGetArg, userInputOnlyValid, tryGetMcDirFromJson, makeFullPath } from './IO';
 import { abort } from 'process';
-import { getOtherPlayersOnline, isOutOfSync } from './GitCommunication';
+import { getOtherPlayersOnline, isInSync } from './GitCommunication';
 const dialog = require('dialog')
 
 function getMcWorldDirFromArgs(): Result<string, string> {
@@ -81,10 +81,10 @@ function displayFileReport(files: FileDescriptor[]) {
 }
 
 async function main() {
-  const mcDir = getMcWorldDirFromArgs().mapErr((e) => tryGetMcDirFromJson().toResult().mapErr(_ => e)).unwrap()
+  const mcDir = getMcWorldDirFromArgs().lazyOrErr((e) => tryGetMcDirFromJson().toResult().mapErr(_ => e)).unwrap()
 
-  const isOutSync = (await isOutOfSync()).unwrap()
-  if (isOutSync) {
+  const isSynced = (await isInSync()).unwrap()
+  if (!isSynced) {
     console.error('You current world is out of sync with the cloud version! Please synchronize before opening minecraft again')
     return
   }

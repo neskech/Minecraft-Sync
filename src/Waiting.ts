@@ -1,6 +1,6 @@
 
-const intervals = (timeout: number, fn: () => void): number =>
-  window.setInterval(fn, timeout)
+const intervals = (timeout: number, fn: () => void) =>
+  setInterval(fn, timeout)
 
 async function checkIfProcessExists(processName: string): Promise<boolean> {
   const list = require('ps-list').psList()
@@ -18,7 +18,7 @@ export function waitForMinecraftOpen(): Promise<void> {
       checkIfProcessExists('minecraft').then((result) => {
         if (!result) return
 
-        clearInterval(interval)
+        clearInterval(interval as any)
         resolve()
       })
     })
@@ -32,7 +32,7 @@ export function waitForMinecraftClose(): Promise<void> {
       checkIfProcessExists('minecraft').then((result) => {
         if (result) return
 
-        clearInterval(interval)
+        clearInterval(interval as any)
         resolve()
       })
     })

@@ -8,7 +8,7 @@ import {
   userInputOnlyValid,
 } from './IO'
 import { download, upload } from './Communication'
-import { isOutOfSync, uploadBulk } from './GitCommunication'
+import { isInSync, uploadBulk } from './GitCommunication'
 
 async function main() {
   const uploadOrDownlooad = tryGetArg(0)
@@ -27,8 +27,8 @@ async function main() {
       abort()
     })
 
-  const isOutSync = (await isOutOfSync()).unwrap()
-  if (isOutSync) {
+  const isSynced = (await isInSync()).unwrap()
+  if (!isSynced) {
     console.warn(
       'You current world is out of sync with the cloud version! Consider downloading',
     )

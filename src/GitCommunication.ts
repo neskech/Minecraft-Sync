@@ -45,13 +45,13 @@ function execCommand(cmdStr: string): Promise<Result<string, string>> {
 }
 
 async function switchBranch(branchName: string): Promise<Result<Unit, string>> {
-  const result = await execCommand(`git checkout ${branchName}`)
+  const result = await execCommand(`cd gitData && git checkout ${branchName}`)
   if (result.isErr()) return Err(result.unwrapErr())
   return Ok(unit)
 }
 
 async function pullFromRepo(): Promise<Result<Unit, string>> {
-  const result = await execCommand('git reset --hard origin sync')
+  const result = await execCommand('cd gitData && git reset --hard origin sync')
 
   if (result.isErr()) return Err(result.unwrapErr())
 
@@ -60,7 +60,7 @@ async function pullFromRepo(): Promise<Result<Unit, string>> {
 
 async function pushToRepo(): Promise<Result<Unit, string>> {
   const result = await execCommand(
-    'git add . && git commit -m "sync" && git push origin sync',
+    'cd gitData && git add . && git commit -m "sync" && git push origin sync',
   )
 
   if (result.isErr()) return Err(result.unwrapErr())
@@ -68,18 +68,15 @@ async function pushToRepo(): Promise<Result<Unit, string>> {
   return Ok(unit)
 }
 
-export async function isOutOfSync(): Promise<Result<boolean, string>> {
+export async function isInSync(): Promise<Result<boolean, string>> {
   const res1 = await switchBranch('sync')
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await execCommand('git pull origin sync')
+  const res2 = await execCommand('cd gitData && git pull origin sync')
   if (res2.isErr()) return Err(res2.unwrapErr())
 
   const out = res2.unwrap()
   const result = out.toLowerCase().includes('already up to date')
-
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
 
   return Ok(result)
 }
@@ -101,9 +98,6 @@ export async function signalPlayerOnline(): Promise<Result<Unit, string>> {
   const json = JSON.parse(content) as Record<string, boolean>
   const username = userInfo().username
   json[username] = true
-
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
 
   return Ok(unit)
 }
@@ -127,9 +121,6 @@ export async function signalPlayerOffline() {
   const username = userInfo().username
   json[username] = false
 
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
-
   return Ok(unit)
 }
 
@@ -139,7 +130,6 @@ export async function getOtherPlayersOnline(): Promise<Result<string[], string>>
 
   const res2 = await pullFromRepo()
   if (res2.isErr()) {
-    await switchBranch('main')
     return Err(res2.unwrapErr())
   }
 
@@ -147,9 +137,6 @@ export async function getOtherPlayersOnline(): Promise<Result<string[], string>>
     encoding: 'utf-8',
   })
   const json = JSON.parse(content) as Record<string, boolean>
-
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
 
   return Ok(Object.keys(json).filter((k) => json[k]))
 }
@@ -178,9 +165,6 @@ export async function upload(
   const res2 = await pushToRepo()
   if (res2.isErr()) return Err(res2.unwrapErr())
 
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
-
   return Ok(unit)
 }
 
@@ -194,9 +178,6 @@ export async function uploadBulk(dir: string): Promise<Result<Unit, string>> {
 
   const res2 = await pushToRepo()
   if (res2.isErr()) return Err(res2.unwrapErr())
-
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
 
   return Ok(unit)
 }
@@ -224,9 +205,6 @@ export async function download(dir: string): Promise<Result<Unit, string>> {
   }
 
   deleteDirIfContents('../gitData/worldFiles/')
-
-  const res3 = await switchBranch('main')
-  if (res3.isErr()) return Err(res3.unwrapErr())
 
   return Ok(unit)
 }

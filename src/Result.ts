@@ -135,8 +135,17 @@ export class Result<T, E> {
 
   or(r: Result<T, E>): Result<T, E> {
     if (this.isOk()) return this;
-    else if (r.isOk()) return r;
-    else return r;
+    return r
+  }
+
+  lazyOr(r: () => Result<T, E>): Result<T, E> {
+    if (this.isOk()) return this;
+    return r()
+  }
+
+  lazyOrErr(r: (err: E) => Result<T, E>): Result<T, E> {
+    if (this.isOk()) return this;
+    return r(this.unwrapErr())
   }
 
   and(r: Result<T, E>): Result<T, E> {

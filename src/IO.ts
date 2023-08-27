@@ -46,6 +46,7 @@ export function tryGetMcDirFromJson(): Option<string> {
     const result = JSON.parse(content)
     return Option.fromNull(result?.directory)
   } catch (e) {
+    console.error(e)
     return None()
   }
 }
