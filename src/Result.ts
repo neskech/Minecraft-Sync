@@ -63,7 +63,7 @@ export class Result<T, E> {
 
   unwrap(): T {
     if (isOk_(this.data)) return this.data.value;
-    throw new Error(`Tried unwrapping result to Ok, but had type Err ||\n\n${this.unwrapErr()}`);
+    throw new Error(this.unwrapErr() as string + '\n');
   }
 
   unwrapOrDefault(default_: T): T {

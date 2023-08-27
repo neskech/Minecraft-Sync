@@ -1,10 +1,9 @@
-import psList from 'ps-list'
 
 const intervals = (timeout: number, fn: () => void): NodeJS.Timer =>
   setInterval(fn, timeout)
 
 async function checkIfProcessExists(processName: string): Promise<boolean> {
-  const list = await psList()
+  const list = require('ps-list').psList()
   console.log(list)
   for (const descriptor of list) {
     if (descriptor.name.includes(processName)) return true

@@ -15,8 +15,6 @@
       "forceConsistentCasingInFileNames": true,
       "removeComments": true,
       "composite": true,
-
-      "noFallthroughCasesInSwitch": true,
       "typeRoots": [
           "node_modules/@types"
       ],
@@ -24,10 +22,10 @@
       "baseUrl": ".",
       "paths": {
         "~/*": ["./src/*"]
-      },
+      }
   },
   "files": [
-      "src/core/Index.ts",
+      "src/Index.ts",
   ],
   "include": [
       "./src/**/*.ts",
@@ -36,8 +34,4 @@
       "node_modules",
       "dist"
   ],
-  "exports": {
-    "~/": ["./src/"]
-  }
-
 }

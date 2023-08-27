@@ -1,4 +1,5 @@
 {
+  
   "scripts": {
     "build": "npx tsc",
     "start": "ts-node src/Index.ts"

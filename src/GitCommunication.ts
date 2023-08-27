@@ -71,13 +71,24 @@ async function pushToRepo(): Promise<Result<Unit, string>> {
   return Ok(unit)
 }
 
-export async function isOutOfSync(): Promise<boolean> {
+export async function isOutOfSync(): Promise<Result<boolean, string>> {
+  const res1 = await switchBranch('sync')
+  if (res1.isErr()) return Err(res1.unwrapErr())
 
+  const res2 = await execCommand('git pull origin sync')
+  if (res2.isErr()) return Err(res2.unwrapErr())
+
+  const out = res2.unwrap()
+  const result = out.toLowerCase().includes('already up to date')
+
+  const res3 = await switchBranch('main')
+  if (res3.isErr()) return Err(res3.unwrapErr())
+
+  return Ok(result)
 }
 
 export async function signalPlayerOnline(): Promise<Result<Unit, string>> {
   const res1 = await switchBranch('sync')
-
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const res2 = await pullFromRepo()
@@ -125,7 +136,7 @@ export async function signalPlayerOffline() {
   return Ok(unit)
 }
 
-export async function isAnotherPlayerOnline(): Promise<Result<boolean, string>> {
+export async function getOtherPlayersOnline(): Promise<Result<string[], string>> {
   const res1 = await switchBranch('sync')
   if (res1.isErr()) return Err(res1.unwrapErr())
 
@@ -143,7 +154,7 @@ export async function isAnotherPlayerOnline(): Promise<Result<boolean, string>> 
   const res3 = await switchBranch('main')
   if (res3.isErr()) return Err(res3.unwrapErr())
 
-  return Ok(new Array(Object.values(json)).some((online) => online))
+  return Ok(Object.keys(json).filter((k) => json[k]))
 }
 
 export async function upload(
@@ -196,7 +207,7 @@ export async function uploadBulk(dir: string): Promise<Result<Unit, string>> {
 export async function download(dir: string): Promise<Result<Unit, string>> {
   const res1 = await switchBranch('sync')
   if (res1.isErr()) return Err(res1.unwrapErr())
-  
+
   const res2 = await pullFromRepo()
   if (res2.isErr()) return Err(res2.unwrapErr())
 

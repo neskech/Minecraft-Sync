@@ -5,6 +5,7 @@ import { waitForMinecraftClose, waitForMinecraftOpen } from './Waiting'
 import { isAnotherPlayerOnline, signalPlayerOffline, signalPlayerOnline, upload } from './Communication'
 import { areYouReallySure, tryGetArg, userInputOnlyValid } from './IO'
 import { abort } from 'process';
+import { getOtherPlayersOnline, isOutOfSync } from './GitCommunication';
 const dialog = require('dialog')
 
 function getMcWorldDirFromArgs(): Result<string, string> {
@@ -25,8 +26,13 @@ async function mainProcess(mcDir: string): Promise<FileDescriptor[]> {
 
   await waitForMinecraftOpen()
 
-  if (await isAnotherPlayerOnline()) {
-    dialog.Err("There's another player online! Your changes won't be saved", "Minecraft", () => {})
+  const otherPlayers = await getOtherPlayersOnline()
+  if (otherPlayers.isErr()) {
+    dialog.Err("Can't verify that there are other players online! Your changes won't be saved", "Minecraft", () => {})
+    abort()
+  }
+  if (otherPlayers.unwrap().length > 0) {
+    dialog.Err(`(${otherPlayers.unwrap().join(', ')}) are online! Your changes won't be saved`, "Minecraft", () => {})
     abort()
   }
 
@@ -72,6 +78,12 @@ function displayFileReport(files: FileDescriptor[]) {
 
 async function main() {
   const mcDir = getMcWorldDirFromArgs().unwrap()
+
+  const isOutSync = (await isOutOfSync()).unwrap()
+  if (isOutSync) {
+    console.error('You current world is out of sync with the cloud version! Please synchronize before opening minecraft again')
+    return
+  }
 
   const files = await mainProcess(mcDir)
   displayFileReport(files)
