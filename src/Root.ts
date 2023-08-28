@@ -80,25 +80,21 @@ export function getArgs(): cmdArgs.CommandLineOptions {
 async function main() {
   const args = getArgs()
 
-  if (args.helpRoot && !args.help) {
+  if ((args.helpRoot && !args.help) || Object.keys(args).every(k => args[k] == null)) {
     console.log(color.greenBright(getUsage()))
     return
   }
 
-  const featureSet = Option.fromNull(args.featureSet as string | null).filter(choice => {
-        if (choice != '0' && choice != '1') {
-            console.log(color.redBright('Invalid choice of feature set. Defaulting to 0'))
-            return false
-        }
-        return true
-  }).unwrapOrDefault('0')
+  const featureSet = Option.fromNull(args.featureSet as string | null);
+  if (!featureSet.predicate(c => c == '0' || c == '1')) {
+    console.log(color.redBright('Invalid choice of feature set. Exiting'))
+    return
+  }
 
-  if (featureSet == '0')
-    await FeatureSetZero()
-  else 
-    await FeatureSetOne()
+  if (featureSet.unwrap() == '0') await FeatureSetZero()
+  else await FeatureSetOne()
 }
 
 if (require.main === module) {
-    main();
+  main()
 }

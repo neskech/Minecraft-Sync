@@ -32,6 +32,9 @@
   ],
   "exclude": [
       "node_modules",
+      "bin",
+      "exec",
+      "compiled",
       "dist"
   ],
 }
