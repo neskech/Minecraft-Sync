@@ -6,6 +6,7 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  statSync,
   writeFileSync,
   writeSync,
 } from 'fs'
@@ -39,13 +40,30 @@ export function execCommand(cmdStr: string): Promise<Result<string, string>> {
   })
 }
 
+export function searchForFile(dir: string, name: string): Option<string> {
+    const files = readdirSync(dir)
+    for (const file of files) {
+      const full = makeFullPath(`${dir}/${file}`)
+
+      if (statSync(full).isDirectory())
+        return searchForFile(`${dir}/${file}`, name)
+      else if (file == name)
+        return Some(full)
+    }
+
+    return None()
+}
+
 export async function dialogBox(
   content: string,
   title: string,
 ): Promise<Result<Unit, string>> {
-  /* TODO: do a search for the java file */
+  const file = searchForFile('.', 'Main.java')
+  if (file.isNone())
+    return Err('Could not find java file')
+
   const result = await execCommand(`java ../src/Main.java ${content} ${title}`)
-  console.log(result.toString())
+
   if (result.isErr()) return Err(result.unwrapErr())
   return Ok(unit)
 }

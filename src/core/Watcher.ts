@@ -20,7 +20,7 @@ import {
 import usage from 'command-line-usage'
 import color from 'cli-color'
 import { getArgs } from './Root'
-import { logDebug } from '../util/IO';
+import { logDebug } from '../util/IO'
 
 function getUsage(): string {
   const sections = [
@@ -49,11 +49,7 @@ function getUsage(): string {
   return usage(sections)
 }
 
-async function mainProcess(syncDir: string, username: string, mcProcess: string) {
-  logDebug('Waiting for minecraft to open....')
-
-  await waitForMinecraftOpen(mcProcess)
-
+async function exitIfPlayersOnline(syncDir: string) {
   const otherPlayers = await getOtherPlayersOnline(syncDir)
 
   if (otherPlayers.isErr()) {
@@ -72,7 +68,9 @@ async function mainProcess(syncDir: string, username: string, mcProcess: string)
   }
   if (otherPlayers.unwrap().length > 0) {
     const res = await dialogBox(
-      `(${otherPlayers.unwrap().join(', ')}) are currently online! Your changes won't be saved`,
+      `(${otherPlayers
+        .unwrap()
+        .join(', ')}) are currently online! Your changes won't be saved`,
       'Minecraft',
     )
     res.mapErr((_) =>
@@ -84,6 +82,12 @@ async function mainProcess(syncDir: string, username: string, mcProcess: string)
     )
     exit()
   }
+}
+
+async function mainProcess(syncDir: string, username: string, mcProcess: string) {
+  logDebug('Waiting for minecraft to open....')
+
+  await waitForMinecraftOpen(mcProcess)
 
   await signalPlayerOnline(syncDir, username)
 
@@ -109,7 +113,11 @@ export default async function main() {
   logDebug(`Use server set to ${args.useServer}...`)
 
   const config = getConfig(args.useServer)
-    .mapErr((e) => e.includes('feature set 2') ? e : `${e}...\nConsider changing your config with feature set 2`)
+    .mapErr((e) =>
+      e.includes('feature set 2')
+        ? e
+        : `${e}...\nConsider changing your config with feature set 2`,
+    )
     .unwrap(false)
 
   const dir = args.useServer ? config.serverDirectory : config.singlePlayerDirectory
@@ -134,19 +142,21 @@ export default async function main() {
     }
   }
 
+  await exitIfPlayersOnline(syncDir)
+
   await mainProcess(syncDir, config.username, config.minecraftProcessName)
 
   if (noConfirmation) {
-    logDebug('Uploading changes to the cloud...');
-    (await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
+    logDebug('Uploading changes to the cloud...')
+    ;(await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
     return
   }
 
   const answer = userInputOnlyValid('Would you like to upload your changes?', ['y', 'n'])
 
   if (answer == 'y' && areYouReallySure(3)) {
-    logDebug('Uploading changes to the cloud...');
-    (await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
+    logDebug('Uploading changes to the cloud...')
+    ;(await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
   } else {
     logDebug('Exiting without saving your changes...')
   }
