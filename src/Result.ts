@@ -1,4 +1,5 @@
 import { type Option, Some, None } from "./Option";
+import color from 'cli-color'
 
 type Ok_<T> = { __type: "Ok"; value: T };
 type Err_<E> = { __type: "Err"; value: E };
@@ -63,7 +64,7 @@ export class Result<T, E> {
 
   unwrap(): T {
     if (isOk_(this.data)) return this.data.value;
-    throw new Error(this.unwrapErr() as string + '\n');
+    throw new Error(color.redBright(this.unwrapErr() as string + '\n'));
   }
 
   unwrapOrDefault(default_: T): T {

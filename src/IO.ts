@@ -37,12 +37,6 @@ export function makeFullPath(file: string): string {
   return join(__dirname, file)
 }
 
-export function tryGetArg(index: number): Option<string> {
-  index += 1
-  if (sys.args.length > index) return Some(sys.args[index])
-  return None()
-}
-
 export function userInputOnlyValid(question: string, choices: string[]): string {
   const questionStr = `${question} (${choices.join(' ')})`
 
