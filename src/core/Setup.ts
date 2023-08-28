@@ -46,7 +46,14 @@ function getUsage(): string {
 
 export default async function main() {
   const args = getArgs()
-  assertLegalArgs(args, ['h', 's', 'u', 'a', 'r'])
+  assertLegalArgs(args, [
+    'help',
+    'singlePlayerDir',
+    'serverDir',
+    'syncDir',
+    'githubRepoLink',
+    'username',
+  ])
 
   if (args.help) {
     console.log(color.greenBright(getUsage()))
@@ -56,17 +63,13 @@ export default async function main() {
   if (args.singlePlayerDir)
     mutateConfig('singlePlayerDirectory', args.singlePlayerDir).unwrap()
 
-  if (args.serverDir) 
-    mutateConfig('serverDirectory', args.singlePlayerDir).unwrap()
+  if (args.serverDir) mutateConfig('serverDirectory', args.singlePlayerDir).unwrap()
 
-  if (args.syncDir) 
-    mutateConfig('syncDirectory', args.syncDir).unwrap()
+  if (args.syncDir) mutateConfig('syncDirectory', args.syncDir).unwrap()
 
-  if (args.githubRepoLink) 
-    mutateConfig('repoLink', args.githubRepoLink).unwrap()
+  if (args.githubRepoLink) mutateConfig('repoLink', args.githubRepoLink).unwrap()
 
-  if (args.username) 
-    mutateConfig('username', args.username).unwrap()
+  if (args.username) mutateConfig('username', args.username).unwrap()
 
   const keys = [
     'singlePlayerDirectory',
@@ -76,13 +79,17 @@ export default async function main() {
     'username',
   ]
   const raw = getConfigRaw()
-  const missingKeys = keys.filter((k) => !(k in raw))
 
+  console.log(color.greenBright('Your current config:\n'))
+  console.log(raw)
+  console.log()
+
+  const missingKeys = keys.filter((k) => !(k in raw))
   if (missingKeys.length > 0)
     console.log(
       color.redBright(
-        `Warning: Your config file is still missing the following values: '${keys}'`,
-      ),
+        'Warning: Your config file is still missing the following properties:\n\n',
+      ) + color.yellow(missingKeys.join('\n')),
     )
 }
 

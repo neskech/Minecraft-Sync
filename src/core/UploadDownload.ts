@@ -1,20 +1,22 @@
-import { abort } from 'process'
 import {
   areYouReallySure,
   assertLegalArgs,
   assertRequiredArgs,
   getConfig,
-  logDebug,
   setupSyncDirectory,
   userInputOnlyValid,
 } from '../util/IO'
 
-import { download, isInSync, uploadBulk } from '../util/GitCommunication'
-import cmdArgs from 'command-line-args'
+import {
+  download,
+  getOtherPlayersOnline,
+  isInSync,
+  uploadBulk,
+} from '../util/GitCommunication'
 import usage from 'command-line-usage'
 import color from 'cli-color'
-import { Option } from '../lib/Option'
 import { getArgs } from './Root'
+import { logDebug } from '../util/IO';
 
 function getUsage(): string {
   const sections = [
@@ -45,25 +47,41 @@ function getUsage(): string {
 
 export default async function main() {
   const args = getArgs()
-  assertLegalArgs(args, ['h', 'o'])
-  assertRequiredArgs(args, ['t', 'o'])
+  assertLegalArgs(args, ['help', 'upOrDown', 'useServer'])
 
   if (args.help) {
     console.log(color.greenBright(getUsage()))
     return
   }
 
+  assertRequiredArgs(args, ['upOrDown'])
+  logDebug(`Use server set to ${args.useServer}...`)
+
   const op = args.upOrDown as string
-  if (op == 'up' || op == 'down') {
-    console.error('Valid inputs to this program are "(up, down)"')
+  if (op != 'up' && op != 'down') {
+    console.error(`Valid inputs are "(up, down)" but found ${op}`)
     return
   }
 
-  const config = getConfig().unwrap()
+  const config = getConfig(args.useServer)
+    .mapErr((e) => e.includes('feature set 2') ? e : `${e}...\nConsider changing your config with feature set 2`)
+    .unwrap(false)
+
   const dir = args.useServer ? config.serverDirectory : config.singlePlayerDirectory
   const syncDir = config.syncDirectory
 
   ;(await setupSyncDirectory(syncDir, config.repoLink)).unwrap()
+
+  const otherPlayers = await getOtherPlayersOnline(syncDir)
+  if (otherPlayers.isErr()) {
+    console.log(
+      color.redBright(
+        'Unable to verify if other players are online. Proceed with caution',
+      ),
+    )
+  } else if (otherPlayers.unwrap().length > 0) {
+    console.log(color.redBright(`(${otherPlayers.unwrap().join(', ')}) are online!`))
+  }
 
   const isSynced = (await isInSync(syncDir)).unwrap()
   if (!isSynced) {

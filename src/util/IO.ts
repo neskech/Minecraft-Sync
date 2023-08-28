@@ -2,7 +2,6 @@ import { sys } from 'typescript'
 import { None, Option, Some } from '../lib/Option'
 import {
   existsSync,
-  mkdir,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -15,7 +14,8 @@ import { exec } from 'child_process'
 import { Err, Ok, Result, Unit, unit } from '../lib/Result'
 import color from 'cli-color'
 import cmdArgs from 'command-line-args'
-import { includesAll } from '../lib/listUtils'
+import { includesAll, remove } from '../lib/listUtils'
+import { exit } from 'process'
 const prompt_ = require('prompt-sync')({ sigint: true })
 
 export function deleteDirIfContents(dir: string) {
@@ -84,40 +84,40 @@ export function areYouReallySure(areYouReallys: number): boolean {
 }
 
 export function assertLegalArgs(args: cmdArgs.CommandLineOptions, set: string[]) {
-  const allLegal = Object.keys(args).filter((k) => !set.includes(k))
+  const allLegal = remove(Object.keys(args), 'featureSet').filter((k) => !set.includes(k))
   if (allLegal.length > 0) {
     console.log(
-      color.redBright(`Arguments ${allLegal} are not allowed for this feature set`),
+      color.redBright(
+        `Argument(s) (${allLegal.join(', ')}) are not allowed for this feature set`,
+      ),
     )
+    exit()
   }
 }
 
 export function assertRequiredArgs(args: cmdArgs.CommandLineOptions, set: string[]) {
   const notPresent = set.filter((k) => !(k in args) || args[k] == null)
   if (notPresent.length > 0) {
-    console.log(color.redBright(`The required arguments ${notPresent} are not present`))
+    console.log(
+      color.redBright(
+        `The required argument(s) (${notPresent.join(', ')}) are not present`,
+      ),
+    )
+    exit()
   }
 }
 
 export async function getCurrentBranchName(
   syncDir: string,
 ): Promise<Result<string, string>> {
-  const res = await execCommand(`cd ${syncDir} && git branch}`)
-  if (res.isErr())
-    return Err(res.unwrapErr())
-
-  const stdout = res.unwrap()
-  const star = stdout.indexOf('*')
-  /* + 1 for the space in "* main\n" */
-  return Ok(stdout.substring(star + 1, stdout.indexOf('\n', star + 1)))
+  return await execCommand(`cd ${syncDir} && git rev-parse --abbrev-ref HEAD`)
 }
 
 export async function getCurrentRepoOrigin(
   syncDir: string,
 ): Promise<Result<string, string>> {
-  const res = await execCommand(`cd ${syncDir} && git remote -v}`)
-  if (res.isErr())
-    return Err(res.unwrapErr())
+  const res = await execCommand(`cd ${syncDir} && git remote -v`)
+  if (res.isErr()) return Err(res.unwrapErr())
 
   const stdout = res.unwrap()
   const start = stdout.indexOf('https://')
@@ -131,9 +131,12 @@ export async function setupSyncDirectory(
 ): Promise<Result<Unit, string>> {
   if (!existsSync(syncDir)) mkdirSync(syncDir)
 
-  if (existsSync(`${syncDir}/.git`) && (await getCurrentRepoOrigin(syncDir)).unwrap() == repoLink)
+  if (
+    existsSync(`${syncDir}/.git`) &&
+    (await getCurrentRepoOrigin(syncDir)).unwrap() == repoLink
+  )
     return Ok(unit)
-  
+
   if (existsSync(`${syncDir}/worldFiles`))
     rmSync(`${syncDir}/worldFiles`, { recursive: true })
   mkdirSync(`${syncDir}/worldFiles`)
@@ -141,19 +144,23 @@ export async function setupSyncDirectory(
   if (existsSync(`${syncDir}/.git`))
     rmSync(`${syncDir}/.git`, { recursive: true, force: true })
 
-  const res1 = await execCommand(`cd ${syncDir} && git init}`)
+  const res1 = await execCommand(`cd ${syncDir} && git init -b main`)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await execCommand(`cd ${syncDir} && git remote origin add ${repoLink}}`)
+  const res2 = await execCommand(`cd ${syncDir} && git remote add origin ${repoLink}`)
   if (res2.isErr()) return Err(res2.unwrapErr())
+
+  writeFileSync(`${syncDir}/playerData.json`, JSON.stringify({}))
+  const res3 = await execCommand(`cd ${syncDir} && git add . && git commit -m "dummy"`)
+  if (res3.isErr()) return Err(res3.unwrapErr())
 
   const branchName = await getCurrentBranchName(syncDir)
   if (branchName.isErr()) return Err(branchName.unwrapErr())
 
-  const res3 = await execCommand(
-    `cd ${syncDir} && git add . && git commit -m "init" && git push origin ${branchName.unwrap()}`,
+  const res4 = await execCommand(
+    `cd ${syncDir} && git push origin ${branchName.unwrap()} -force`,
   )
-  if (res3.isErr()) return Err(res3.unwrapErr())
+  if (res4.isErr()) return Err(res4.unwrapErr())
 
   return Ok(unit)
 }
@@ -177,8 +184,12 @@ export function mutateConfig(
   const f = makeFullPath('./config.json')
   if (!existsSync(f)) writeFileSync(f, JSON.stringify({}))
 
-  if (property.includes('Directory') && !existsSync(value)) {
-    return Err(`The ${value} does not exist`)
+  if (
+    property.includes('Directory') &&
+    property != 'syncDirectory' &&
+    !existsSync(value)
+  ) {
+    return Err(`The directory ${value} does not exist`)
   }
 
   const requiredSubFolders = ['world', 'wold_nether', 'world_the_end']
@@ -201,7 +212,7 @@ export function mutateConfig(
   return Ok(unit)
 }
 
-export function getConfig(): Result<Config, string> {
+export function getConfig(needServer: boolean): Result<Config, string> {
   try {
     const content = readFileSync(makeFullPath('./config.json'), {
       encoding: 'utf-8',
@@ -215,15 +226,23 @@ export function getConfig(): Result<Config, string> {
       'syncDirectory',
       'repoLink',
     ]
-    const notThere = properties.filter((p) => !typeCheck(result, p))
+    const notThere = properties.filter((p) => {
+      if (p == 'singlePlayerDirectory' && needServer) return false
+      if (p == 'serverDirectory' && needServer) return false
+
+      return !typeCheck(result, p)
+    })
     if (notThere.length > 0)
       return Err(
         `Properties ${notThere} missing from config file. Try filling them out with feature set 2`,
       )
 
-    const dontExist = properties.filter(
-      (p) => p.includes('Directory') && existsSync(result[p]),
-    )
+    const dontExist = properties.filter((p) => {
+      if (p == 'singlePlayerDirectory' && needServer) return false
+      if (p == 'serverDirectory' && needServer) return false
+      if (p == 'syncDirectory') return false
+      return p.includes('Directory') && !existsSync(result[p])
+    })
     if (dontExist.length > 0)
       return Err(
         `The following directories from your config do not exist on your system. Consider changing them with feature set 2.\n\n---> ${dontExist}`,

@@ -87,3 +87,11 @@ export function dropWhile<A>(a: A[], fn: (a: A) => boolean): A[] {
 export function includesAll<A>(superSet: A[], subSet: A[]): boolean {
   return subSet.every((a) => superSet.includes(a))
 }
+
+export function remove<A>(list: A[], a: A): A[] {
+  const idx = list.indexOf(a)
+  if (idx == undefined)
+    return list
+  list.splice(idx, 1)
+  return list
+}

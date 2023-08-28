@@ -1,3 +1,4 @@
+import { exit } from 'process';
 import { type Option, Some, None } from './Option'
 import color from 'cli-color'
 
@@ -62,9 +63,14 @@ export class Result<T, E> {
     }
   }
 
-  unwrap(): T {
+  unwrap(printTrace = true): T {
     if (isOk_(this.data)) return this.data.value
-    throw new Error(color.redBright((this.unwrapErr() as string) + '\n'))
+
+    const str = color.redBright((this.unwrapErr() as string) + '\n')
+    if (printTrace) console.trace(str)
+    else console.log(str)
+
+    exit()
   }
 
   unwrapOrDefault(default_: T): T {

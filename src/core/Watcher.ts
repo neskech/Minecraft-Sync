@@ -1,17 +1,14 @@
-import { Err, Ok, Result } from '../lib/Result'
-import { existsSync, lstatSync, writeFileSync } from 'fs'
 import { waitForMinecraftClose, waitForMinecraftOpen } from '../util/Waiting'
 import {
   areYouReallySure,
   userInputOnlyValid,
-  logDebug,
   dialogBox,
   getConfig,
   assertLegalArgs,
   assertRequiredArgs,
   setupSyncDirectory,
 } from '../util/IO'
-import { abort } from 'process'
+import { exit } from 'process'
 import {
   download,
   getOtherPlayersOnline,
@@ -20,11 +17,10 @@ import {
   signalPlayerOnline,
   uploadBulk,
 } from '../util/GitCommunication'
-import cmdArgs from 'command-line-args'
 import usage from 'command-line-usage'
 import color from 'cli-color'
-import { Option } from '../lib/Option'
 import { getArgs } from './Root'
+import { logDebug } from '../util/IO';
 
 function getUsage(): string {
   const sections = [
@@ -36,12 +32,12 @@ function getUsage(): string {
       header: 'Options',
       optionList: [
         {
-          name: 'Don\'t ask for confirmation -> -c (true or false)',
+          name: "Don't ask for confirmation -> -c (true or false)",
           description: 'Perform upload and download operations without confirmation',
         },
         {
           name: 'Use server -> -t (true or false)',
-          description: 'Tells the app whether or not you\'re using a server directory',
+          description: "Tells the app whether or not you're using a server directory",
         },
         {
           name: 'Help --> -h',
@@ -53,7 +49,7 @@ function getUsage(): string {
   return usage(sections)
 }
 
-async function mainProcess(syncDir: string) {
+async function mainProcess(syncDir: string, username: string) {
   logDebug('Waiting for minecraft to open....')
 
   await waitForMinecraftOpen()
@@ -72,11 +68,11 @@ async function mainProcess(syncDir: string) {
         ),
       ),
     )
-    abort()
+    exit()
   }
   if (otherPlayers.unwrap().length > 0) {
     const res = await dialogBox(
-      `(${otherPlayers.unwrap().join(', ')}) are online! Your changes won't be saved`,
+      `(${otherPlayers.unwrap().join(', ')}) are currently online! Your changes won't be saved`,
       'Minecraft',
     )
     res.mapErr((_) =>
@@ -86,29 +82,34 @@ async function mainProcess(syncDir: string) {
         ),
       ),
     )
-    abort()
+    exit()
   }
 
-  await signalPlayerOnline(syncDir)
+  await signalPlayerOnline(syncDir, username)
 
   logDebug('Waiting for minecraft to close....')
 
   await waitForMinecraftClose()
 
-  await signalPlayerOffline(syncDir)
+  await signalPlayerOffline(syncDir, username)
 }
 
 export default async function main() {
   const args = getArgs()
-  assertLegalArgs(args, ['h', 't', 'c'])
-  assertRequiredArgs(args, ['t'])
+  assertLegalArgs(args, ['help', 'confirmation'])
 
   if (args.help) {
     console.log(color.greenBright(getUsage()))
     return
   }
 
-  const config = getConfig().unwrap()
+  assertRequiredArgs(args, ['useServer'])
+  logDebug(`Use server set to ${args.useServer}...`)
+
+  const config = getConfig(args.useServer)
+    .mapErr((e) => e.includes('feature set 2') ? e : `${e}...\nConsider changing your config with feature set 2`)
+    .unwrap(false)
+
   const dir = args.useServer ? config.serverDirectory : config.singlePlayerDirectory
   const syncDir = config.syncDirectory
 
@@ -131,7 +132,7 @@ export default async function main() {
     }
   }
 
-  await mainProcess(syncDir)
+  await mainProcess(syncDir, config.username)
 
   if (noConfirmation) {
     logDebug('Uploading changes to the cloud...')

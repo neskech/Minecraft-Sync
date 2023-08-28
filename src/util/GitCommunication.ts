@@ -25,8 +25,12 @@ import { readFileSync } from 'fs'
 import { userInfo } from 'os'
 import { exec } from 'child_process'
 import { copySync, mkdirsSync, moveSync } from 'fs-extra'
-import { deleteDirIfContents, execCommand, makeFullPath } from './IO'
-
+import {
+  deleteDirIfContents,
+  execCommand,
+  getCurrentBranchName,
+  makeFullPath,
+} from './IO'
 
 function isServerDirectory(filesDir: string): boolean {
   const subFiles = readdirSync(filesDir)
@@ -45,17 +49,13 @@ function getWorldNameFromWorldDirectory(dir: string): string {
   return dir.substring(dir.lastIndexOf('/') + 1)
 }
 
-async function switchBranch(
-  branchName: string,
-  syncDir: string,
-): Promise<Result<Unit, string>> {
-  const result = await execCommand(`cd ${syncDir} && git checkout ${branchName}`)
-  if (result.isErr()) return Err(result.unwrapErr())
-  return Ok(unit)
-}
-
 async function pullFromRepo(syncDir: string): Promise<Result<Unit, string>> {
-  const result = await execCommand(`cd ${syncDir} && git reset --hard sync`)
+  const branchName = await getCurrentBranchName(syncDir)
+  if (branchName.isErr()) return Err(branchName.unwrapErr())
+
+  const result = await execCommand(
+    `cd ${syncDir} && git reset --hard ${branchName.unwrap()}`,
+  )
 
   if (result.isErr()) return Err(result.unwrapErr())
 
@@ -63,8 +63,11 @@ async function pullFromRepo(syncDir: string): Promise<Result<Unit, string>> {
 }
 
 async function pushToRepo(syncDir: string): Promise<Result<Unit, string>> {
+  const branchName = await getCurrentBranchName(syncDir)
+  if (branchName.isErr()) return Err(branchName.unwrapErr())
+
   const result = await execCommand(
-    `cd ${syncDir} && git add . && git commit -m "sync" && git push origin sync`,
+    `cd ${syncDir} && git add . && git commit -m "sync" && git push origin ${branchName.unwrap()}`,
   )
 
   if (result.isErr()) return Err(result.unwrapErr())
@@ -73,61 +76,56 @@ async function pushToRepo(syncDir: string): Promise<Result<Unit, string>> {
 }
 
 export async function isInSync(syncDir: string): Promise<Result<boolean, string>> {
-  const res1 = await switchBranch('sync', syncDir)
+  const res1 = await execCommand('cd gitData && git pull origin sync')
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await execCommand('cd gitData && git pull origin sync')
-  if (res2.isErr()) return Err(res2.unwrapErr())
-
-  const out = res2.unwrap()
+  const out = res1.unwrap()
   const result = out.toLowerCase().includes('already up to date')
 
   return Ok(result)
 }
 
-export async function signalPlayerOnline(syncDir: string): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync', syncDir)
-  if (res1.isErr()) return Err(res1.unwrapErr())
-
-  const res2 = await pullFromRepo(syncDir)
-
-  if (res2.isErr()) {
-    return Err(res2.unwrapErr())
+export async function signalPlayerOnline(
+  syncDir: string,
+  username: string,
+): Promise<Result<Unit, string>> {
+  const res1 = await pullFromRepo(syncDir)
+  if (res1.isErr()) {
+    return Err(res1.unwrapErr())
   }
+
+  if (!existsSync(`${syncDir}/playerData.json`))
+    return Err('Unable to signal yourself as online')
 
   const content = readFileSync(`${syncDir}/playerData.json`, {
     encoding: 'utf-8',
   })
   const json = JSON.parse(content) as Record<string, boolean>
-  const username = userInfo().username
   json[username] = true
 
   writeFileSync(`${syncDir}/playerData.json`, JSON.stringify(json))
 
-  const res3 = await pushToRepo(syncDir)
-  if (res3.isErr()) {
-    return Err(res3.unwrapErr())
+  const res2 = await pushToRepo(syncDir)
+  if (res2.isErr()) {
+    return Err(res2.unwrapErr())
   }
 
   return Ok(unit)
 }
 
-export async function signalPlayerOffline(syncDir: string) {
-  const res1 = await switchBranch('sync', syncDir)
-
-  if (res1.isErr()) return Err(res1.unwrapErr())
-
-  const res2 = await pullFromRepo(syncDir)
-
-  if (res2.isErr()) {
-    return Err(res2.unwrapErr())
+export async function signalPlayerOffline(syncDir: string, username: string) {
+  const res1 = await pullFromRepo(syncDir)
+  if (res1.isErr()) {
+    return Err(res1.unwrapErr())
   }
+
+  if (!existsSync(`${syncDir}/playerData.json`))
+    return Err('Unable to signal yourself as offline')
 
   const content = readFileSync(`${syncDir}/playerData.json`, {
     encoding: 'utf-8',
   })
   const json = JSON.parse(content) as Record<string, boolean>
-  const username = userInfo().username
   json[username] = false
 
   writeFileSync(`${syncDir}/playerData.json`, JSON.stringify(json))
@@ -143,13 +141,13 @@ export async function signalPlayerOffline(syncDir: string) {
 export async function getOtherPlayersOnline(
   syncDir: string,
 ): Promise<Result<string[], string>> {
-  const res1 = await switchBranch('sync', syncDir)
-  if (res1.isErr()) return Err(res1.unwrapErr())
-
-  const res2 = await pullFromRepo(syncDir)
-  if (res2.isErr()) {
-    return Err(res2.unwrapErr())
+  const res1 = await pullFromRepo(syncDir)
+  if (res1.isErr()) {
+    return Err(res1.unwrapErr())
   }
+
+  if (!existsSync(`${syncDir}/playerData.json`))
+    return Err('Unable to verify prescence of other players')
 
   const content = readFileSync(`${syncDir}/playerData.json`, {
     encoding: 'utf-8',
@@ -164,9 +162,6 @@ export async function uploadBulk(
   syncDir: string,
   isServer: boolean,
 ): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync', syncDir)
-  if (res1.isErr()) return Err(res1.unwrapErr())
-
   const zip = new Zip()
   if (isServer) {
     zip.addLocalFolder(`${dir}/world`)
@@ -177,8 +172,8 @@ export async function uploadBulk(
   }
   zip.writeZip(`${syncDir}/worldData.zip`)
 
-  const res2 = await pushToRepo(syncDir)
-  if (res2.isErr()) return Err(res2.unwrapErr())
+  const res1 = await pushToRepo(syncDir)
+  if (res1.isErr()) return Err(res1.unwrapErr())
 
   return Ok(unit)
 }
@@ -188,11 +183,8 @@ export async function download(
   syncDir: string,
   isDestinationServer: boolean,
 ): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync', syncDir)
+  const res1 = await pullFromRepo(syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
-
-  const res2 = await pullFromRepo(syncDir)
-  if (res2.isErr()) return Err(res2.unwrapErr())
 
   if (!existsSync(`${syncDir}/worldData.zip`)) return Err('No zip file to download from')
 

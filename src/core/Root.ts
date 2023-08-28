@@ -3,8 +3,9 @@ import usage from 'command-line-usage'
 import color from 'cli-color'
 import FeatureSetZero from './Watcher'
 import FeatureSetOne from './UploadDownload'
+import FeatureSetTwo from './Setup'
 import { Option } from '../lib/Option'
-import { assertLegalArgs } from '~/util/IO'
+import { assertLegalArgs } from '../util/IO'
 
 function getUsage(): string {
   const sections = [
@@ -21,17 +22,17 @@ function getUsage(): string {
             'To see detailed arguments and descriptions of each feature set, do <-f <set number> -h>',
         },
         {
-          name: '-f 0',
+          name: '> -f 0 (watcher)',
           description:
             'Feature set 0 --> Automatically tracks your play session, syncing everything for you',
         },
         {
-          name: '-f 1',
+          name: '> -f 1 (upload download)',
           description:
             'Feature set 1 --> Manual control over uploads and downloads of minecraft worlds',
         },
         {
-          name: '-f 2',
+          name: '> -f 2 (configuration)',
           description: 'Feature set 2 --> Set configuration data',
         },
       ],
@@ -59,7 +60,6 @@ export function getArgs(): cmdArgs.CommandLineOptions {
 
 async function main() {
   const args = getArgs()
-  assertLegalArgs(args, ['h', 't', 'c'])
 
   if ((args.helpRoot && !args.help) || Object.keys(args).every((k) => args[k] == null)) {
     console.log(color.greenBright(getUsage()))
@@ -75,7 +75,7 @@ async function main() {
   const f = featureSet.unwrap()
   if (f == '0') await FeatureSetZero()
   else if (f == '1') await FeatureSetOne()
-  else await FeatureSetOne()
+  else await FeatureSetTwo()
 }
 
 if (require.main === module) {
