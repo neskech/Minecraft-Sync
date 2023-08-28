@@ -9,6 +9,7 @@ import {
   getConfig,
   assertLegalArgs,
   assertRequiredArgs,
+  setupSyncDirectory,
 } from '../util/IO'
 import { abort } from 'process'
 import {
@@ -110,6 +111,8 @@ export default async function main() {
   const config = getConfig().unwrap()
   const dir = args.useServer ? config.serverDirectory : config.singlePlayerDirectory
   const syncDir = config.syncDirectory
+
+  ;(await setupSyncDirectory(syncDir, config.repoLink)).unwrap()
 
   const noConfirmation = args.confirmation ?? false
 

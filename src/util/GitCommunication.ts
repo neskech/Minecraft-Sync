@@ -25,15 +25,8 @@ import { readFileSync } from 'fs'
 import { userInfo } from 'os'
 import { exec } from 'child_process'
 import { copySync, mkdirsSync, moveSync } from 'fs-extra'
-import { execCommand, makeFullPath } from './IO'
+import { deleteDirIfContents, execCommand, makeFullPath } from './IO'
 
-function deleteDirIfContents(dir: string) {
-  const toDelete = readdirSync(makeFullPath(dir))
-  for (const file of toDelete) {
-    const fullPath = makeFullPath(`${dir}/${file}`)
-    rmSync(fullPath, { recursive: true })
-  }
-}
 
 function isServerDirectory(filesDir: string): boolean {
   const subFiles = readdirSync(filesDir)

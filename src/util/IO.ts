@@ -1,13 +1,30 @@
 import { sys } from 'typescript'
 import { None, Option, Some } from '../lib/Option'
-import { existsSync, readFileSync, readdirSync, writeFileSync, writeSync } from 'fs'
+import {
+  existsSync,
+  mkdir,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+  writeSync,
+} from 'fs'
 import { join } from 'path'
 import { exec } from 'child_process'
 import { Err, Ok, Result, Unit, unit } from '../lib/Result'
 import color from 'cli-color'
 import cmdArgs from 'command-line-args'
-import { includesAll } from '../lib/listUtils';
+import { includesAll } from '../lib/listUtils'
 const prompt_ = require('prompt-sync')({ sigint: true })
+
+export function deleteDirIfContents(dir: string) {
+  const toDelete = readdirSync(makeFullPath(dir))
+  for (const file of toDelete) {
+    const fullPath = makeFullPath(`${dir}/${file}`)
+    rmSync(fullPath, { recursive: true })
+  }
+}
 
 export function execCommand(cmdStr: string): Promise<Result<string, string>> {
   return new Promise((resolve) => {
@@ -76,12 +93,69 @@ export function assertLegalArgs(args: cmdArgs.CommandLineOptions, set: string[])
 }
 
 export function assertRequiredArgs(args: cmdArgs.CommandLineOptions, set: string[]) {
-  const notPresent = set.filter(k => !(k in args) || args[k] == null)
+  const notPresent = set.filter((k) => !(k in args) || args[k] == null)
   if (notPresent.length > 0) {
-    console.log(
-      color.redBright(`The required arguments ${notPresent} are not present`),
-    )
+    console.log(color.redBright(`The required arguments ${notPresent} are not present`))
   }
+}
+
+export async function getCurrentBranchName(
+  syncDir: string,
+): Promise<Result<string, string>> {
+  const res = await execCommand(`cd ${syncDir} && git branch}`)
+  if (res.isErr())
+    return Err(res.unwrapErr())
+
+  const stdout = res.unwrap()
+  const star = stdout.indexOf('*')
+  /* + 1 for the space in "* main\n" */
+  return Ok(stdout.substring(star + 1, stdout.indexOf('\n', star + 1)))
+}
+
+export async function getCurrentRepoOrigin(
+  syncDir: string,
+): Promise<Result<string, string>> {
+  const res = await execCommand(`cd ${syncDir} && git remote -v}`)
+  if (res.isErr())
+    return Err(res.unwrapErr())
+
+  const stdout = res.unwrap()
+  const start = stdout.indexOf('https://')
+  const end = stdout.indexOf('.git' + '.git'.length)
+  return Ok(stdout.substring(start, end))
+}
+
+export async function setupSyncDirectory(
+  syncDir: string,
+  repoLink: string,
+): Promise<Result<Unit, string>> {
+  if (!existsSync(syncDir)) mkdirSync(syncDir)
+
+  if (existsSync(`${syncDir}/.git`) && (await getCurrentRepoOrigin(syncDir)).unwrap() == repoLink)
+    return Ok(unit)
+  
+  if (existsSync(`${syncDir}/worldFiles`))
+    rmSync(`${syncDir}/worldFiles`, { recursive: true })
+  mkdirSync(`${syncDir}/worldFiles`)
+
+  if (existsSync(`${syncDir}/.git`))
+    rmSync(`${syncDir}/.git`, { recursive: true, force: true })
+
+  const res1 = await execCommand(`cd ${syncDir} && git init}`)
+  if (res1.isErr()) return Err(res1.unwrapErr())
+
+  const res2 = await execCommand(`cd ${syncDir} && git remote origin add ${repoLink}}`)
+  if (res2.isErr()) return Err(res2.unwrapErr())
+
+  const branchName = await getCurrentBranchName(syncDir)
+  if (branchName.isErr()) return Err(branchName.unwrapErr())
+
+  const res3 = await execCommand(
+    `cd ${syncDir} && git add . && git commit -m "init" && git push origin ${branchName.unwrap()}`,
+  )
+  if (res3.isErr()) return Err(res3.unwrapErr())
+
+  return Ok(unit)
 }
 
 type Config = {
@@ -108,9 +182,12 @@ export function mutateConfig(
   }
 
   const requiredSubFolders = ['world', 'wold_nether', 'world_the_end']
-  if (property == 'serverDirectory' && !includesAll(readdirSync(value), requiredSubFolders)) {
+  if (
+    property == 'serverDirectory' &&
+    !includesAll(readdirSync(value), requiredSubFolders)
+  ) {
     const subFiles = readdirSync(value)
-    const notPresent = requiredSubFolders.filter(f => !subFiles.includes(f))
+    const notPresent = requiredSubFolders.filter((f) => !subFiles.includes(f))
     return Err(`Server directory is missing the required sub folders: ${notPresent}`)
   }
 

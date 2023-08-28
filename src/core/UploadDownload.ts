@@ -5,6 +5,7 @@ import {
   assertRequiredArgs,
   getConfig,
   logDebug,
+  setupSyncDirectory,
   userInputOnlyValid,
 } from '../util/IO'
 
@@ -53,7 +54,7 @@ export default async function main() {
   }
 
   const op = args.upOrDown as string
-  if (op  == 'up' || op == 'down') {
+  if (op == 'up' || op == 'down') {
     console.error('Valid inputs to this program are "(up, down)"')
     return
   }
@@ -61,6 +62,8 @@ export default async function main() {
   const config = getConfig().unwrap()
   const dir = args.useServer ? config.serverDirectory : config.singlePlayerDirectory
   const syncDir = config.syncDirectory
+
+  ;(await setupSyncDirectory(syncDir, config.repoLink)).unwrap()
 
   const isSynced = (await isInSync(syncDir)).unwrap()
   if (!isSynced) {
