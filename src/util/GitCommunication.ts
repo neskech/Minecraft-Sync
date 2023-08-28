@@ -6,6 +6,7 @@ import {
   cpSync,
   createReadStream,
   existsSync,
+  mkdir,
   readdir,
   readdirSync,
   renameSync,
@@ -23,7 +24,7 @@ import { copyFile } from 'fs/promises'
 import { readFileSync } from 'fs'
 import { userInfo } from 'os'
 import { exec } from 'child_process'
-import { copySync } from 'fs-extra'
+import { copySync, mkdirsSync, moveSync } from 'fs-extra'
 import { execCommand, makeFullPath } from './IO'
 
 function deleteDirIfContents(dir: string) {
@@ -34,11 +35,27 @@ function deleteDirIfContents(dir: string) {
   }
 }
 
+function isServerDirectory(filesDir: string): boolean {
+  const subFiles = readdirSync(filesDir)
+  return (
+    subFiles.includes('world') &&
+    subFiles.includes('world_nether') &&
+    subFiles.includes('world_the_end')
+  )
+}
+
+function allExist(dirs: string[]): boolean {
+  return dirs.every((d) => existsSync(d))
+}
+
 function getWorldNameFromWorldDirectory(dir: string): string {
   return dir.substring(dir.lastIndexOf('/') + 1)
 }
 
-async function switchBranch(branchName: string, syncDir: string): Promise<Result<Unit, string>> {
+async function switchBranch(
+  branchName: string,
+  syncDir: string,
+): Promise<Result<Unit, string>> {
   const result = await execCommand(`cd ${syncDir} && git checkout ${branchName}`)
   if (result.isErr()) return Err(result.unwrapErr())
   return Ok(unit)
@@ -130,8 +147,10 @@ export async function signalPlayerOffline(syncDir: string) {
   return Ok(unit)
 }
 
-export async function getOtherPlayersOnline(syncDir: string): Promise<Result<string[], string>> {
-  const res1 = await switchBranch('sync',syncDir)
+export async function getOtherPlayersOnline(
+  syncDir: string,
+): Promise<Result<string[], string>> {
+  const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const res2 = await pullFromRepo(syncDir)
@@ -147,12 +166,22 @@ export async function getOtherPlayersOnline(syncDir: string): Promise<Result<str
   return Ok(Object.keys(json).filter((k) => json[k]))
 }
 
-export async function uploadBulk(dir: string, syncDir: string, server: boolean): Promise<Result<Unit, string>> {
+export async function uploadBulk(
+  dir: string,
+  syncDir: string,
+  isServer: boolean,
+): Promise<Result<Unit, string>> {
   const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const zip = new Zip()
-  zip.addLocalFolder(dir)
+  if (isServer) {
+    zip.addLocalFolder(`${dir}/world`)
+    zip.addLocalFolder(`${dir}/world_nether`)
+    zip.addLocalFolder(`${dir}/world_the_end`)
+  } else {
+    zip.addLocalFolder(dir)
+  }
   zip.writeZip(`${syncDir}/worldData.zip`)
 
   const res2 = await pushToRepo(syncDir)
@@ -161,44 +190,83 @@ export async function uploadBulk(dir: string, syncDir: string, server: boolean):
   return Ok(unit)
 }
 
-export async function download(dir: string, syncDir: string): Promise<Result<Unit, string>> {
+export async function download(
+  dir: string,
+  syncDir: string,
+  isDestinationServer: boolean,
+): Promise<Result<Unit, string>> {
   const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const res2 = await pullFromRepo(syncDir)
   if (res2.isErr()) return Err(res2.unwrapErr())
 
-  if (!existsSync(`${syncDir}/worldData.zip`))
-    return Err('No zip file to download from')
+  if (!existsSync(`${syncDir}/worldData.zip`)) return Err('No zip file to download from')
 
   deleteDirIfContents('../gitData/worldFiles')
 
   createReadStream(`${syncDir}/worldData.zip`)
     .pipe(Extract({ path: `${syncDir}/wolrdFiles` }))
     .on('close', () => {
-      const realDirName = getWorldNameFromWorldDirectory(dir)
+      const worldName = getWorldNameFromWorldDirectory(dir)
+      const isSourceServer = isServerDirectory(`${syncDir}/wolrdFiles`)
 
       /**
        * Rename the old directory backup, deleting any other backup worlds
        * that we made in the past
        */
-
-      if (existsSync(dir)) {
+      if (!isDestinationServer && existsSync(dir)) {
         const backupDirName = `backupSync${userInfo().username}`
         const backupDir = path.join(dir, '../', backupDirName)
         if (existsSync(backupDir)) rmSync(backupDir, { recursive: true })
         renameSync(dir, backupDir)
+      } else if (isDestinationServer) {
+        console.log('TODO')
       }
 
-      renameSync(
-        `${syncDir}/wolrdFiles`,
-        `${syncDir}/${realDirName}`
-      )
-      cpSync(`${syncDir}/${realDirName}`, dir, { recursive: true })
-      renameSync(
-        `${syncDir}/${realDirName}`,
-        `${syncDir}/wolrdFiles`,
-      )
+      if (isSourceServer && !isDestinationServer) {
+        /**
+         * Move the DIM files from the nether and the end into
+         * the main world folder. Then move that folder over into
+         * the singleplayer directory
+         */
+        moveSync(
+          `${syncDir}/wolrdFiles/world_nether/DIM1`,
+          `${syncDir}/wolrdFiles/world/DIM1`,
+        )
+        moveSync(
+          `${syncDir}/wolrdFiles/world_the_end/DIM-1`,
+          `${syncDir}/wolrdFiles/world/DIM-1`,
+        )
+        renameSync(`${syncDir}/wolrdFiles/world`, `${syncDir}/wolrdFiles/${worldName}`)
+        moveSync(`${syncDir}/wolrdFiles/${worldName}`, dir)
+      } else if (!isSourceServer && isDestinationServer) {
+        /**
+         * Move DIM1 (nether) and DIM-1 (end) directly into the server folders.
+         * Then, once those folders are gone, move over the entire folder. Rename
+         * the worldFiles folder to just world so we can replace
+         */
+        moveSync(`${syncDir}/wolrdFiles/DIM1`, `${dir}/world_nether`, {
+          overwrite: true,
+        })
+        moveSync(`${syncDir}/wolrdFiles/DIM-1`, `${dir}/world_the_end`, {
+          overwrite: true,
+        })
+
+        renameSync(`${syncDir}/wolrdFiles`, `${syncDir}/world`)
+        moveSync(`${syncDir}/world`, dir, {
+          overwrite: true,
+        })
+        renameSync(`${syncDir}/world`, `${syncDir}/wolrdFiles`)
+      } else if (isSourceServer && isDestinationServer) {
+        moveSync(`${syncDir}/wolrdFiles/world`, dir, { overwrite: true })
+        moveSync(`${syncDir}/wolrdFiles/world_nether`, dir, { overwrite: true })
+        moveSync(`${syncDir}/wolrdFiles/world_the_end`, dir, { overwrite: true })
+      } else {
+        renameSync(`${syncDir}/wolrdFiles`, `${syncDir}/${worldName}`)
+        moveSync(`${syncDir}/${worldName}`, path.join(dir, '../'), { overwrite: true })
+        mkdirsSync(`${syncDir}/wolrdFiles`)
+      }
 
       deleteDirIfContents(`${syncDir}/wolrdFiles`)
     })

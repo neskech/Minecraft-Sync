@@ -77,7 +77,7 @@ export default async function main() {
       await uploadBulk(dir, syncDir, args.useServer)
     } else {
       logDebug('Downloading from the cloud...')
-      await download(dir, syncDir)
+      await download(dir, syncDir, args.useServer)
     }
     return
   } else {

@@ -117,13 +117,13 @@ export default async function main() {
   if (!isSynced) {
     if (noConfirmation) {
       logDebug('Your world is out of sync. Retrieving data from the cloud...')
-      ;(await download(dir, syncDir)).unwrap()
+      ;(await download(dir, syncDir, args.useServer)).unwrap()
     } else {
       const answer = userInputOnlyValid(
         'Your world is out of sync. Do you want to download the most recent changes from the cloud?',
         ['y', 'n'],
       )
-      if (answer == 'y') (await download(dir, syncDir)).unwrap()
+      if (answer == 'y') (await download(dir, syncDir, args.useServer)).unwrap()
       else return
     }
   }

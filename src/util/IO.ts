@@ -1,11 +1,12 @@
 import { sys } from 'typescript'
 import { None, Option, Some } from '../lib/Option'
-import { existsSync, readFileSync, writeFileSync, writeSync } from 'fs'
+import { existsSync, readFileSync, readdirSync, writeFileSync, writeSync } from 'fs'
 import { join } from 'path'
 import { exec } from 'child_process'
 import { Err, Ok, Result, Unit, unit } from '../lib/Result'
 import color from 'cli-color'
 import cmdArgs from 'command-line-args'
+import { includesAll } from '../lib/listUtils';
 const prompt_ = require('prompt-sync')({ sigint: true })
 
 export function execCommand(cmdStr: string): Promise<Result<string, string>> {
@@ -104,6 +105,13 @@ export function mutateConfig(
 
   if (property.includes('Directory') && !existsSync(value)) {
     return Err(`The ${value} does not exist`)
+  }
+
+  const requiredSubFolders = ['world', 'wold_nether', 'world_the_end']
+  if (property == 'serverDirectory' && !includesAll(readdirSync(value), requiredSubFolders)) {
+    const subFiles = readdirSync(value)
+    const notPresent = requiredSubFolders.filter(f => !subFiles.includes(f))
+    return Err(`Server directory is missing the required sub folders: ${notPresent}`)
   }
 
   const content = readFileSync(makeFullPath('./config.json'), {

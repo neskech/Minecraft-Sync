@@ -83,3 +83,7 @@ export function dropWhile<A>(a: A[], fn: (a: A) => boolean): A[] {
   for (let j = i; j < a.length; j++) arr.push(a[j])
   return arr
 }
+
+export function includesAll<A>(superSet: A[], subSet: A[]): boolean {
+  return subSet.every((a) => superSet.includes(a))
+}
