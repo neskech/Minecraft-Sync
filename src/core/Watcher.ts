@@ -1,14 +1,15 @@
-import { Err, Ok, Result } from './Result'
+import { Err, Ok, Result } from '../lib/Result'
 import { existsSync, lstatSync, writeFileSync } from 'fs'
-import { waitForMinecraftClose, waitForMinecraftOpen } from './Waiting'
+import { waitForMinecraftClose, waitForMinecraftOpen } from '../util/Waiting'
 import {
   areYouReallySure,
   userInputOnlyValid,
-  tryGetMcDirFromJson,
-  makeFullPath,
   logDebug,
   dialogBox,
-} from './IO'
+  getConfig,
+  assertLegalArgs,
+  assertRequiredArgs,
+} from '../util/IO'
 import { abort } from 'process'
 import {
   download,
@@ -17,11 +18,12 @@ import {
   signalPlayerOffline,
   signalPlayerOnline,
   uploadBulk,
-} from './GitCommunication'
+} from '../util/GitCommunication'
 import cmdArgs from 'command-line-args'
 import usage from 'command-line-usage'
 import color from 'cli-color'
-import { Option } from './Option'
+import { Option } from '../lib/Option'
+import { getArgs } from './Root'
 
 function getUsage(): string {
   const sections = [
@@ -33,12 +35,12 @@ function getUsage(): string {
       header: 'Options',
       optionList: [
         {
-          name: 'Minecraft world directory --> -d (your directory)',
-          description: 'The directory of your minecraft world you want to sync',
+          name: 'Don\'t ask for confirmation -> -c (true or false)',
+          description: 'Perform upload and download operations without confirmation',
         },
         {
-          name: 'No Confirmation -> -c (true or false)',
-          description: 'Perform upload and download operations without confirmation',
+          name: 'Use server -> -t (true or false)',
+          description: 'Tells the app whether or not you\'re using a server directory',
         },
         {
           name: 'Help --> -h',
@@ -50,45 +52,12 @@ function getUsage(): string {
   return usage(sections)
 }
 
-export function getArgs(): cmdArgs.CommandLineOptions {
-  const optionDefinitions = [
-    { name: 'helpRoot', alias: 'H', type: Boolean, defaultOption: false },
-    { name: 'featureSet', alias: 't', type: String },
-
-    /* To prevent error */
-    { name: 'directory', alias: 'd', type: String },
-    { name: 'confirmation', alias: 'c', type: Boolean, defaultOption: false },
-    { name: 'help', alias: 'h', type: Boolean, defaultOption: false },
-    { name: 'upOrDown', alias: 'o', type: String },
-  ]
-  return cmdArgs(optionDefinitions)
-}
-
-function getMcWorldDirFromArgs(arg: Option<string>): Result<string, string> {
-  if (arg.isNone()) return Err('Please supply your minecraft world directory')
-
-  const name = arg.unwrap()
-
-  if (!existsSync(name)) return Err('That directory does not exist')
-
-  if (!lstatSync(name).isDirectory()) return Err('That path is not a directory')
-
-  writeFileSync(
-    makeFullPath('../gitData/minecraftDirectory.json'),
-    JSON.stringify({
-      directory: name,
-    }),
-  )
-
-  return Ok(name)
-}
-
-async function mainProcess() {
+async function mainProcess(syncDir: string) {
   logDebug('Waiting for minecraft to open....')
 
   await waitForMinecraftOpen()
 
-  const otherPlayers = await getOtherPlayersOnline()
+  const otherPlayers = await getOtherPlayersOnline(syncDir)
 
   if (otherPlayers.isErr()) {
     const res = await dialogBox(
@@ -119,53 +88,51 @@ async function mainProcess() {
     abort()
   }
 
-  await signalPlayerOnline()
+  await signalPlayerOnline(syncDir)
 
   logDebug('Waiting for minecraft to close....')
 
   await waitForMinecraftClose()
 
-  await signalPlayerOffline()
+  await signalPlayerOffline(syncDir)
 }
 
 export default async function main() {
   const args = getArgs()
+  assertLegalArgs(args, ['h', 't', 'c'])
+  assertRequiredArgs(args, ['t'])
 
   if (args.help) {
     console.log(color.greenBright(getUsage()))
     return
   }
 
-  const mcDir = getMcWorldDirFromArgs(Option.fromNull(args.directory as string | null))
-    .lazyOrErr((e) =>
-      tryGetMcDirFromJson()
-        .toResult()
-        .mapErr((_) => e),
-    )
-    .unwrap()
+  const config = getConfig().unwrap()
+  const dir = args.useServer ? config.serverDirectory : config.singlePlayerDirectory
+  const syncDir = config.syncDirectory
 
   const noConfirmation = args.confirmation ?? false
 
-  const isSynced = (await isInSync()).unwrap()
+  const isSynced = (await isInSync(syncDir)).unwrap()
   if (!isSynced) {
     if (noConfirmation) {
       logDebug('Your world is out of sync. Retrieving data from the cloud...')
-      ;(await download(mcDir)).unwrap()
+      ;(await download(dir, syncDir)).unwrap()
     } else {
       const answer = userInputOnlyValid(
         'Your world is out of sync. Do you want to download the most recent changes from the cloud?',
         ['y', 'n'],
       )
-      if (answer == 'y') (await download(mcDir)).unwrap()
+      if (answer == 'y') (await download(dir, syncDir)).unwrap()
       else return
     }
   }
 
-  await mainProcess()
+  await mainProcess(syncDir)
 
   if (noConfirmation) {
     logDebug('Uploading changes to the cloud...')
-    await uploadBulk(mcDir)
+    await uploadBulk(dir, syncDir, args.useServer)
     return
   }
 
@@ -173,12 +140,12 @@ export default async function main() {
 
   if (answer == 'y' && areYouReallySure(3)) {
     logDebug('Uploading changes to the cloud...')
-    await uploadBulk(mcDir)
+    await uploadBulk(dir, syncDir, args.useServer)
   } else {
     logDebug('Exiting without saving your changes...')
   }
 }
 
 if (require.main === module) {
-  main();
+  main()
 }

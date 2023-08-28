@@ -1,6 +1,6 @@
 import { config } from 'dotenv'
 import { GoogleApis, drive_v3, google, oauth2_v2 } from 'googleapis'
-import { Err, Ok, Result, Unit, unit } from './Result'
+import { Err, Ok, Result, Unit, unit } from '../lib/Result'
 import {
   copyFileSync,
   cpSync,
@@ -38,23 +38,23 @@ function getWorldNameFromWorldDirectory(dir: string): string {
   return dir.substring(dir.lastIndexOf('/') + 1)
 }
 
-async function switchBranch(branchName: string): Promise<Result<Unit, string>> {
-  const result = await execCommand(`cd gitData && git checkout ${branchName}`)
+async function switchBranch(branchName: string, syncDir: string): Promise<Result<Unit, string>> {
+  const result = await execCommand(`cd ${syncDir} && git checkout ${branchName}`)
   if (result.isErr()) return Err(result.unwrapErr())
   return Ok(unit)
 }
 
-async function pullFromRepo(): Promise<Result<Unit, string>> {
-  const result = await execCommand('cd gitData && git reset --hard sync')
+async function pullFromRepo(syncDir: string): Promise<Result<Unit, string>> {
+  const result = await execCommand(`cd ${syncDir} && git reset --hard sync`)
 
   if (result.isErr()) return Err(result.unwrapErr())
 
   return Ok(unit)
 }
 
-async function pushToRepo(): Promise<Result<Unit, string>> {
+async function pushToRepo(syncDir: string): Promise<Result<Unit, string>> {
   const result = await execCommand(
-    'cd gitData && git add . && git commit -m "sync" && git push origin sync',
+    `cd ${syncDir} && git add . && git commit -m "sync" && git push origin sync`,
   )
 
   if (result.isErr()) return Err(result.unwrapErr())
@@ -62,8 +62,8 @@ async function pushToRepo(): Promise<Result<Unit, string>> {
   return Ok(unit)
 }
 
-export async function isInSync(): Promise<Result<boolean, string>> {
-  const res1 = await switchBranch('sync')
+export async function isInSync(syncDir: string): Promise<Result<boolean, string>> {
+  const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const res2 = await execCommand('cd gitData && git pull origin sync')
@@ -75,26 +75,26 @@ export async function isInSync(): Promise<Result<boolean, string>> {
   return Ok(result)
 }
 
-export async function signalPlayerOnline(): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync')
+export async function signalPlayerOnline(syncDir: string): Promise<Result<Unit, string>> {
+  const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await pullFromRepo()
+  const res2 = await pullFromRepo(syncDir)
 
   if (res2.isErr()) {
     return Err(res2.unwrapErr())
   }
 
-  const content = readFileSync(makeFullPath('../gitData/playerData.json'), {
+  const content = readFileSync(`${syncDir}/playerData.json`, {
     encoding: 'utf-8',
   })
   const json = JSON.parse(content) as Record<string, boolean>
   const username = userInfo().username
   json[username] = true
 
-  writeFileSync(makeFullPath('../gitData/playerData.json'), JSON.stringify(json))
+  writeFileSync(`${syncDir}/playerData.json`, JSON.stringify(json))
 
-  const res3 = await pushToRepo()
+  const res3 = await pushToRepo(syncDir)
   if (res3.isErr()) {
     return Err(res3.unwrapErr())
   }
@@ -102,47 +102,44 @@ export async function signalPlayerOnline(): Promise<Result<Unit, string>> {
   return Ok(unit)
 }
 
-export async function signalPlayerOffline() {
-  const res1 = await switchBranch('sync')
+export async function signalPlayerOffline(syncDir: string) {
+  const res1 = await switchBranch('sync', syncDir)
 
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await pullFromRepo()
+  const res2 = await pullFromRepo(syncDir)
 
   if (res2.isErr()) {
-    await switchBranch('main')
     return Err(res2.unwrapErr())
   }
 
-  const content = readFileSync(makeFullPath('../gitData/playerData.json'), {
+  const content = readFileSync(`${syncDir}/playerData.json`, {
     encoding: 'utf-8',
   })
   const json = JSON.parse(content) as Record<string, boolean>
   const username = userInfo().username
   json[username] = false
 
-  writeFileSync(makeFullPath('../gitData/playerData.json'), JSON.stringify(json))
+  writeFileSync(`${syncDir}/playerData.json`, JSON.stringify(json))
 
-  const res3 = await pushToRepo()
+  const res3 = await pushToRepo(syncDir)
   if (res3.isErr()) {
     return Err(res3.unwrapErr())
   }
 
   return Ok(unit)
-
-  return Ok(unit)
 }
 
-export async function getOtherPlayersOnline(): Promise<Result<string[], string>> {
-  const res1 = await switchBranch('sync')
+export async function getOtherPlayersOnline(syncDir: string): Promise<Result<string[], string>> {
+  const res1 = await switchBranch('sync',syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await pullFromRepo()
+  const res2 = await pullFromRepo(syncDir)
   if (res2.isErr()) {
     return Err(res2.unwrapErr())
   }
 
-  const content = readFileSync(makeFullPath('../gitData/playerData.json'), {
+  const content = readFileSync(`${syncDir}/playerData.json`, {
     encoding: 'utf-8',
   })
   const json = JSON.parse(content) as Record<string, boolean>
@@ -150,61 +147,34 @@ export async function getOtherPlayersOnline(): Promise<Result<string[], string>>
   return Ok(Object.keys(json).filter((k) => json[k]))
 }
 
-export async function upload(
-  dir: string,
-  files: string[],
-): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync')
-  if (res1.isErr()) return Err(res1.unwrapErr())
-
-  deleteDirIfContents('../gitData/worldFiles')
-  for (const file of files) {
-    const fullPath = path.join(dir, file)
-
-    if (!existsSync(fullPath)) return Err(`File ${fullPath} does not exist!`)
-
-    await copyFile(fullPath, makeFullPath(`../gitData/worldFiles/${file}`))
-  }
-
-  const zip = new Zip()
-  zip.addLocalFolder(makeFullPath('../gitData/worldFiles'))
-  zip.writeZip('../gitData/worldData.zip')
-  deleteDirIfContents('../gitData/worldFiles')
-
-  const res2 = await pushToRepo()
-  if (res2.isErr()) return Err(res2.unwrapErr())
-
-  return Ok(unit)
-}
-
-export async function uploadBulk(dir: string): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync')
+export async function uploadBulk(dir: string, syncDir: string, server: boolean): Promise<Result<Unit, string>> {
+  const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const zip = new Zip()
   zip.addLocalFolder(dir)
-  zip.writeZip(makeFullPath('../gitData/worldData.zip'))
+  zip.writeZip(`${syncDir}/worldData.zip`)
 
-  const res2 = await pushToRepo()
+  const res2 = await pushToRepo(syncDir)
   if (res2.isErr()) return Err(res2.unwrapErr())
 
   return Ok(unit)
 }
 
-export async function download(dir: string): Promise<Result<Unit, string>> {
-  const res1 = await switchBranch('sync')
+export async function download(dir: string, syncDir: string): Promise<Result<Unit, string>> {
+  const res1 = await switchBranch('sync', syncDir)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await pullFromRepo()
+  const res2 = await pullFromRepo(syncDir)
   if (res2.isErr()) return Err(res2.unwrapErr())
 
-  if (!existsSync(makeFullPath('../gitData/worldData.zip')))
+  if (!existsSync(`${syncDir}/worldData.zip`))
     return Err('No zip file to download from')
 
   deleteDirIfContents('../gitData/worldFiles')
 
-  createReadStream(makeFullPath('../gitData/worldData.zip'))
-    .pipe(Extract({ path: makeFullPath('../gitData/worldFiles') }))
+  createReadStream(`${syncDir}/worldData.zip`)
+    .pipe(Extract({ path: `${syncDir}/wolrdFiles` }))
     .on('close', () => {
       const realDirName = getWorldNameFromWorldDirectory(dir)
 
@@ -216,22 +186,21 @@ export async function download(dir: string): Promise<Result<Unit, string>> {
       if (existsSync(dir)) {
         const backupDirName = `backupSync${userInfo().username}`
         const backupDir = path.join(dir, '../', backupDirName)
-        if (existsSync(backupDir))
-            rmSync(backupDir, {recursive: true})
+        if (existsSync(backupDir)) rmSync(backupDir, { recursive: true })
         renameSync(dir, backupDir)
       }
 
       renameSync(
-        makeFullPath('../gitData/worldFiles'),
-        makeFullPath(`../gitData/${realDirName}`),
+        `${syncDir}/wolrdFiles`,
+        `${syncDir}/${realDirName}`
       )
-      cpSync(makeFullPath(`../gitData/${realDirName}`), dir, { recursive: true })
+      cpSync(`${syncDir}/${realDirName}`, dir, { recursive: true })
       renameSync(
-        makeFullPath(`../gitData/${realDirName}`),
-        makeFullPath('../gitData/worldFiles'),
+        `${syncDir}/${realDirName}`,
+        `${syncDir}/wolrdFiles`,
       )
 
-      deleteDirIfContents('../gitData/worldFiles')
+      deleteDirIfContents(`${syncDir}/wolrdFiles`)
     })
 
   return Ok(unit)
