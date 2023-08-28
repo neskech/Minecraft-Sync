@@ -35,6 +35,10 @@ function getUsage(): string {
           description: 'Set the git repo that will be used for syncing',
         },
         {
+          name: 'Set minecraft process name --> -p (name)',
+          description: 'Set name of the process this application will look for when you open minecraft',
+        },
+        {
           name: 'Help --> -h',
           description: 'This message',
         },
@@ -51,6 +55,7 @@ export default async function main() {
     'singlePlayerDir',
     'serverDir',
     'syncDir',
+    'process',
     'githubRepoLink',
     'username',
   ])
@@ -71,10 +76,13 @@ export default async function main() {
 
   if (args.username) mutateConfig('username', args.username).unwrap()
 
+  if (args.process) mutateConfig('minecraftProcessName', args.process).unwrap()
+
   const keys = [
     'singlePlayerDirectory',
     'serverDirectory',
     'syncDirectory',
+    'minecraftProcessName',
     'repoLink',
     'username',
   ]

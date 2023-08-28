@@ -1,7 +1,4 @@
-import { exec } from 'child_process'
-import { Result } from '../lib/Result'
 import { execCommand } from './IO'
-import { drop } from '../lib/listUtils'
 
 const intervals = (timeout: number, fn: () => void) => setInterval(fn, timeout)
 
@@ -13,7 +10,6 @@ async function checkIfProcessExists(processName: string): Promise<boolean> {
     const line = lines[i]
     const split = line.split('   ')
 
-    /* TODO: In atlauncher, the name is javaw and in regular minecraft its minecraft.exe, recitfy this */
     if (split && split[0].toLowerCase().includes(processName)) return true
   }
 
@@ -21,10 +17,10 @@ async function checkIfProcessExists(processName: string): Promise<boolean> {
 }
 
 const SEARCH_INTERVAL = 10 * 1000
-export function waitForMinecraftOpen(): Promise<void> {
+export function waitForMinecraftOpen(mcProcess: string): Promise<void> {
   return new Promise((resolve) => {
     const interval = intervals(SEARCH_INTERVAL, () => {
-      checkIfProcessExists('minecraft').then((result) => {
+      checkIfProcessExists(mcProcess).then((result) => {
         if (!result) return
 
         clearInterval(interval as any)
@@ -35,10 +31,10 @@ export function waitForMinecraftOpen(): Promise<void> {
 }
 
 const CLOSE_INTERVAL = 10 * 1000
-export function waitForMinecraftClose(): Promise<void> {
+export function waitForMinecraftClose(mcProcess: string): Promise<void> {
   return new Promise((resolve) => {
     const interval = intervals(CLOSE_INTERVAL, () => {
-      checkIfProcessExists('minecraft').then((result) => {
+      checkIfProcessExists(mcProcess).then((result) => {
         if (result) return
 
         clearInterval(interval as any)

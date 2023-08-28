@@ -49,10 +49,10 @@ function getUsage(): string {
   return usage(sections)
 }
 
-async function mainProcess(syncDir: string, username: string) {
+async function mainProcess(syncDir: string, username: string, mcProcess: string) {
   logDebug('Waiting for minecraft to open....')
 
-  await waitForMinecraftOpen()
+  await waitForMinecraftOpen(mcProcess)
 
   const otherPlayers = await getOtherPlayersOnline(syncDir)
 
@@ -89,21 +89,23 @@ async function mainProcess(syncDir: string, username: string) {
 
   logDebug('Waiting for minecraft to close....')
 
-  await waitForMinecraftClose()
+  await waitForMinecraftClose(mcProcess)
 
   await signalPlayerOffline(syncDir, username)
 }
 
 export default async function main() {
   const args = getArgs()
-  assertLegalArgs(args, ['help', 'confirmation'])
+  assertLegalArgs(args, ['help', 'confirmation', 'useServer'])
 
   if (args.help) {
     console.log(color.greenBright(getUsage()))
     return
   }
 
-  assertRequiredArgs(args, ['useServer'])
+  assertRequiredArgs(args, [])
+
+  args.useServer = args.useServer ?? false
   logDebug(`Use server set to ${args.useServer}...`)
 
   const config = getConfig(args.useServer)
@@ -132,19 +134,19 @@ export default async function main() {
     }
   }
 
-  await mainProcess(syncDir, config.username)
+  await mainProcess(syncDir, config.username, config.minecraftProcessName)
 
   if (noConfirmation) {
-    logDebug('Uploading changes to the cloud...')
-    await uploadBulk(dir, syncDir, args.useServer)
+    logDebug('Uploading changes to the cloud...');
+    (await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
     return
   }
 
   const answer = userInputOnlyValid('Would you like to upload your changes?', ['y', 'n'])
 
   if (answer == 'y' && areYouReallySure(3)) {
-    logDebug('Uploading changes to the cloud...')
-    await uploadBulk(dir, syncDir, args.useServer)
+    logDebug('Uploading changes to the cloud...');
+    (await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
   } else {
     logDebug('Exiting without saving your changes...')
   }

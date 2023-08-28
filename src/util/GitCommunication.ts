@@ -28,7 +28,6 @@ import { copySync, mkdirsSync, moveSync } from 'fs-extra'
 import {
   deleteDirIfContents,
   execCommand,
-  getCurrentBranchName,
   makeFullPath,
 } from './IO'
 
@@ -50,11 +49,8 @@ function getWorldNameFromWorldDirectory(dir: string): string {
 }
 
 async function pullFromRepo(syncDir: string): Promise<Result<Unit, string>> {
-  const branchName = await getCurrentBranchName(syncDir)
-  if (branchName.isErr()) return Err(branchName.unwrapErr())
-
   const result = await execCommand(
-    `cd ${syncDir} && git reset --hard ${branchName.unwrap()}`,
+    `cd ${syncDir} && git reset --hard main`,
   )
 
   if (result.isErr()) return Err(result.unwrapErr())
@@ -63,11 +59,8 @@ async function pullFromRepo(syncDir: string): Promise<Result<Unit, string>> {
 }
 
 async function pushToRepo(syncDir: string): Promise<Result<Unit, string>> {
-  const branchName = await getCurrentBranchName(syncDir)
-  if (branchName.isErr()) return Err(branchName.unwrapErr())
-
   const result = await execCommand(
-    `cd ${syncDir} && git add . && git commit -m "sync" && git push origin ${branchName.unwrap()}`,
+    `cd ${syncDir} && git add . && git commit -m "sync" && git push origin main`,
   )
 
   if (result.isErr()) return Err(result.unwrapErr())
@@ -76,7 +69,7 @@ async function pushToRepo(syncDir: string): Promise<Result<Unit, string>> {
 }
 
 export async function isInSync(syncDir: string): Promise<Result<boolean, string>> {
-  const res1 = await execCommand('cd gitData && git pull origin sync')
+  const res1 = await execCommand(`cd ${syncDir} && git pull origin main`)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
   const out = res1.unwrap()
@@ -162,6 +155,12 @@ export async function uploadBulk(
   syncDir: string,
   isServer: boolean,
 ): Promise<Result<Unit, string>> {
+  if (!existsSync(dir))
+    return Err(`Upload failed. ${dir} is not a real directory`)
+
+  if (isServer && !isServerDirectory(dir))
+    return Err('Upload failed. Your given directory does not seem to be a server directory')
+ 
   const zip = new Zip()
   if (isServer) {
     zip.addLocalFolder(`${dir}/world`)

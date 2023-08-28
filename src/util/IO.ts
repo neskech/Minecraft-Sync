@@ -16,6 +16,7 @@ import color from 'cli-color'
 import cmdArgs from 'command-line-args'
 import { includesAll, remove } from '../lib/listUtils'
 import { exit } from 'process'
+import { strip } from '../lib/Misc'
 const prompt_ = require('prompt-sync')({ sigint: true })
 
 export function deleteDirIfContents(dir: string) {
@@ -107,12 +108,6 @@ export function assertRequiredArgs(args: cmdArgs.CommandLineOptions, set: string
   }
 }
 
-export async function getCurrentBranchName(
-  syncDir: string,
-): Promise<Result<string, string>> {
-  return await execCommand(`cd ${syncDir} && git rev-parse --abbrev-ref HEAD`)
-}
-
 export async function getCurrentRepoOrigin(
   syncDir: string,
 ): Promise<Result<string, string>> {
@@ -154,11 +149,8 @@ export async function setupSyncDirectory(
   const res3 = await execCommand(`cd ${syncDir} && git add . && git commit -m "dummy"`)
   if (res3.isErr()) return Err(res3.unwrapErr())
 
-  const branchName = await getCurrentBranchName(syncDir)
-  if (branchName.isErr()) return Err(branchName.unwrapErr())
-
   const res4 = await execCommand(
-    `cd ${syncDir} && git push origin ${branchName.unwrap()} -force`,
+    `cd ${syncDir} && git push origin main --force`,
   )
   if (res4.isErr()) return Err(res4.unwrapErr())
 
@@ -171,6 +163,7 @@ type Config = {
   serverDirectory: string
   syncDirectory: string
   repoLink: string
+  minecraftProcessName: string
 }
 
 function typeCheck(obj: any, property: string): boolean {
@@ -228,18 +221,18 @@ export function getConfig(needServer: boolean): Result<Config, string> {
     ]
     const notThere = properties.filter((p) => {
       if (p == 'singlePlayerDirectory' && needServer) return false
-      if (p == 'serverDirectory' && needServer) return false
+      if (p == 'serverDirectory' && !needServer) return false
 
       return !typeCheck(result, p)
     })
     if (notThere.length > 0)
       return Err(
-        `Properties ${notThere} missing from config file. Try filling them out with feature set 2`,
+        `Propertie(s) ${notThere.join(', ')} missing from config file. Try filling them out with feature set 2`,
       )
 
     const dontExist = properties.filter((p) => {
       if (p == 'singlePlayerDirectory' && needServer) return false
-      if (p == 'serverDirectory' && needServer) return false
+      if (p == 'serverDirectory' && !needServer) return false
       if (p == 'syncDirectory') return false
       return p.includes('Directory') && !existsSync(result[p])
     })
@@ -247,6 +240,9 @@ export function getConfig(needServer: boolean): Result<Config, string> {
       return Err(
         `The following directories from your config do not exist on your system. Consider changing them with feature set 2.\n\n---> ${dontExist}`,
       )
+
+    if (!result.minecraftProcessName)
+        return Err('Minecraft process name not found in configuration file. Try filling it out with feature set 2')
 
     return Ok(result as Config)
   } catch (e) {

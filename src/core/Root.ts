@@ -52,6 +52,7 @@ export function getArgs(): cmdArgs.CommandLineOptions {
     { name: 'githubRepoLink', alias: 'r', type: String },
     { name: 'useServer', alias: 't', type: Boolean, defaultOption: false },
     { name: 'confirmation', alias: 'c', type: Boolean, defaultOption: false },
+    { name: 'process', alias: 'p', type: String },
     { name: 'help', alias: 'h', type: Boolean, defaultOption: false },
     { name: 'upOrDown', alias: 'o', type: String },
   ]

@@ -55,6 +55,8 @@ export default async function main() {
   }
 
   assertRequiredArgs(args, ['upOrDown'])
+
+  args.useServer = args.useServer ?? false
   logDebug(`Use server set to ${args.useServer}...`)
 
   const op = args.upOrDown as string
@@ -94,11 +96,11 @@ export default async function main() {
 
   if (answer == 'y' && areYouReallySure(1)) {
     if (op == 'up') {
-      logDebug('Uploading changes to the cloud...')
-      await uploadBulk(dir, syncDir, args.useServer)
+      logDebug('Uploading changes to the cloud...');
+      (await uploadBulk(dir, syncDir, args.useServer)).unwrap(false)
     } else {
-      logDebug('Downloading from the cloud...')
-      await download(dir, syncDir, args.useServer)
+      logDebug('Downloading from the cloud...');
+      (await download(dir, syncDir, args.useServer)).unwrap(false)
     }
     return
   } else {
