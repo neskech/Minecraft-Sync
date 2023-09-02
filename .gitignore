@@ -3,3 +3,4 @@ node_modules
 gitData
 compiled/**
 dist/**
+**/config.json
