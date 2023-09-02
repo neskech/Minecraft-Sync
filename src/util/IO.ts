@@ -175,6 +175,8 @@ export async function setupSyncDirectory(
   if (existsSync(`${syncDir}/.git`))
     rmSync(`${syncDir}/.git`, { recursive: true, force: true })
 
+  await execCommand(`cd ${syncDir} && git config pull.rebase true`)
+
   const res1 = await execCommand(`cd ${syncDir} && git init -b main`)
   if (res1.isErr()) return Err(res1.unwrapErr())
 

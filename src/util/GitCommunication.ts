@@ -187,7 +187,7 @@ export async function download(
 
   if (!existsSync(`${syncDir}/worldData.zip`)) return Err('No zip file to download from')
 
-  deleteDirIfContents('../gitData/worldFiles')
+  deleteDirIfContents(`${syncDir}/wolrdFiles`)
 
   createReadStream(`${syncDir}/worldData.zip`)
     .pipe(Extract({ path: `${syncDir}/wolrdFiles` }))
