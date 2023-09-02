@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "npx tsc --outDir dist && npx ncc build dist/src/core/Root.js -o compiled && npx pkg compiled/index.js -t node18-win-x64 --out-path bin && chmod +x compiled/index.js",
+    "build": "npx tsc --outDir dist && npx ncc build dist/src/core/Root.js -o compiled && npx pkg compiled/index.js -t node18-linux-x64 --out-path bin && chmod +x bin/index",
     "start": "ts-node src/core/Root.ts"
   },
   "devDependencies": {

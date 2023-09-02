@@ -1,6 +1,7 @@
 import { sys } from 'typescript'
 import { None, Option, Some } from '../lib/Option'
 import {
+  appendFileSync,
   existsSync,
   mkdirSync,
   readFileSync,
@@ -10,13 +11,13 @@ import {
   writeFileSync,
   writeSync,
 } from 'fs'
-import { join } from 'path'
+import { join, resolve } from 'path'
 import { exec } from 'child_process'
 import { Err, Ok, Result, Unit, unit } from '../lib/Result'
 import color from 'cli-color'
 import cmdArgs from 'command-line-args'
 import { includesAll, remove } from '../lib/listUtils'
-import { exit } from 'process'
+import { cwd, exit } from 'process'
 import { strip } from '../lib/Misc'
 const prompt_ = require('prompt-sync')({ sigint: true })
 
@@ -73,7 +74,7 @@ export function logDebug(...args: any) {
 }
 
 export function makeFullPath(file: string): string {
-  return join(__dirname, file)
+  return resolve(cwd(), file)
 }
 
 export function userInputOnlyValid(question: string, choices: string[]): string {
@@ -193,7 +194,9 @@ export function mutateConfig(
   value: string,
 ): Result<Unit, string> {
   const f = makeFullPath('./config.json')
-  if (!existsSync(f)) writeFileSync(f, JSON.stringify({}))
+  console.log(f)
+  if (!existsSync(f)) appendFileSync(f, JSON.stringify({}))
+
 
   if (
     property.includes('Directory') &&
