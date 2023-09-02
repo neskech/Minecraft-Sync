@@ -4,3 +4,4 @@ gitData
 compiled/**
 dist/**
 **/config.json
+sync

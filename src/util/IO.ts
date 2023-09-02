@@ -127,6 +127,20 @@ export function assertRequiredArgs(args: cmdArgs.CommandLineOptions, set: string
   }
 }
 
+function repo(s: string): Option<string> {
+  let start = -1
+  if (s.includes('https://'))
+    start = s.indexOf('https://') + 'https://'.length
+  else if (s.includes('git@'))
+    start = s.indexOf('git@') + 'git@'.length
+
+  if (start == -1)
+    return None()
+
+  const end = s.indexOf('.git')
+  return Some(s.substring(start, end))
+}
+
 export async function getCurrentRepoOrigin(
   syncDir: string,
 ): Promise<Result<string, string>> {
@@ -134,9 +148,12 @@ export async function getCurrentRepoOrigin(
   if (res.isErr()) return Err(res.unwrapErr())
 
   const stdout = res.unwrap()
-  const start = stdout.indexOf('https://')
-  const end = stdout.indexOf('.git' + '.git'.length)
-  return Ok(stdout.substring(start, end))
+  const s = repo(stdout)
+
+  if (s.isNone())
+    return Err(`Invalid repo ${syncDir}`)
+
+  return Ok(s.unwrap())
 }
 
 export async function setupSyncDirectory(
@@ -147,7 +164,7 @@ export async function setupSyncDirectory(
 
   if (
     existsSync(`${syncDir}/.git`) &&
-    (await getCurrentRepoOrigin(syncDir)).unwrap() == repoLink
+    (await getCurrentRepoOrigin(syncDir)).unwrap() == repo(repoLink).unwrap()
   )
     return Ok(unit)
 
@@ -194,7 +211,6 @@ export function mutateConfig(
   value: string,
 ): Result<Unit, string> {
   const f = makeFullPath('./config.json')
-  console.log(f)
   if (!existsSync(f)) appendFileSync(f, JSON.stringify({}))
 
 
