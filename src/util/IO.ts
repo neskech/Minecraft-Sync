@@ -192,6 +192,7 @@ export async function setupSyncDirectory(
   )
   if (res4.isErr()) return Err(res4.unwrapErr())
 
+  mutateConfig('firstTime', 'true').unwrap()
   return Ok(unit)
 }
 
@@ -201,7 +202,8 @@ type Config = {
   serverDirectory: string
   syncDirectory: string
   repoLink: string
-  minecraftProcessName: string
+  minecraftProcessName: string,
+  firstTime: boolean
 }
 
 function typeCheck(obj: any, property: string): boolean {
@@ -214,7 +216,6 @@ export function mutateConfig(
 ): Result<Unit, string> {
   const f = makeFullPath('./config.json')
   if (!existsSync(f)) appendFileSync(f, JSON.stringify({}))
-
 
   if (
     property.includes('Directory') &&
@@ -282,7 +283,7 @@ export function getConfig(needServer: boolean): Result<Config, string> {
 
     if (!result.minecraftProcessName)
         return Err('Minecraft process name not found in configuration file. Try filling it out with feature set 2')
-
+    
     return Ok(result as Config)
   } catch (e) {
     return Err("Couldn't read config file")

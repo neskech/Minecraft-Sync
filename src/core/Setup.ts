@@ -88,6 +88,9 @@ export default async function main() {
   ]
   const raw = getConfigRaw()
 
+  if ('firstTime' in raw)
+    delete raw.firstTime
+
   console.log(color.greenBright('Your current config:\n'))
   console.log(raw)
   console.log()
