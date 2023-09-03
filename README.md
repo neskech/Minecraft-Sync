@@ -49,31 +49,47 @@ git clone git@github.com:neskech/Minecraft-Sync.git
 ### 4. Example run through
 ```console
   git clone https://github.com/neskech/Minecraft-Sync.git
+```
 
-  # If you want to rebuild the executable
+  <!-- If you want to rebuild the executable -->
+```console
   npm run build
+```
 
-  # Run the exectuable, located in the bin folder
-  # (Running the help command to see the available feature sets)
+  <!-- Run the exectuable, located in the bin folder
+    (Running the help command to see the available feature sets) -->
 
+```console 
   cd bin
   ./index -H
+```
 
-  # First step is to setup configuration
-  # (Running the help command to see config options)
+  <!-- First step is to setup configuration
+   (Running the help command to see config options) -->
+
+```console 
   ./index  -f 2 -h
+```
 
-  # We're not going to run the server ourselves, so we'll set up a singleplayer directory
-  # If you're running this on WSL, then this directory must be via /mnt/
+
+  <!-- We're not going to run the server ourselves, so we'll set up a singleplayer directory
+   If you're running this on WSL, then this directory must be via /mnt/ -->
+
+   ```console
   ./index -f 2 -d <your singelplayer world directory>
+  ```
 
-  # If you're running a server, then use this
-  # Unlike the singleplayer directory, this must be OUTSIDE your world/ folder
+  <!-- If you're running a server, then use this
+      Unlike the singleplayer directory, this must be OUTSIDE your world/ folder -->
+  ```console    
   ./index -f 2 -s <your server directory>
+  ```
 
-  # Set username. If other people are playing, they'll be alerted that you're online
-  # With this name
+  <!-- Set username. If other people are playing, they'll be alerted that you're online
+       With this name -->
+```console
   ./index -f 2 -u <username>
+```
 
   # Set your sync directory. This will be the central place where your world syncs
   # If the directory doesn't exist, the app will make it for you
