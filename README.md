@@ -11,3 +11,10 @@ But... That's kind of tedious. So I made this tool to automate that. Using 'feat
 And if there are other players on the server, the program will attempt to warn you to prevent merge conflicts
 
 To get started run the executable in the bin/ directory (npm run build) 
+
+INSTALLATION GUIDE: 
+-------------------
+1. Clone git repo, click on the clone button use https or SSH, either work. 
+```shell git clone https://github.com/neskech/Minecraft-Sync.git``` or ```shell git@github.com:neskech/Minecraft-Sync.git```
+
+2. 
