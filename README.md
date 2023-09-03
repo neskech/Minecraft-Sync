@@ -14,7 +14,7 @@ To get started run the executable in the bin/ directory (npm run build)
 
 # INSTALLATION GUIDE: 
 -------------------
-### 1. Clone git repo, click on the clone button use https or SSH, either work. 
+### 1a. Clone git repo, click on the clone button use https or SSH, either work. 
 ---------------------------------------------------------------------------
 ```console
 git clone https://github.com/neskech/Minecraft-Sync.git 
@@ -24,6 +24,8 @@ git clone https://github.com/neskech/Minecraft-Sync.git
 ```console
 git clone git@github.com:neskech/Minecraft-Sync.git 
 ```
+
+### 1b. If you dont want to build the app yourself, then download one of the executables and run that instead
 
 ### 2. Run this command in order to set the configuration of the application, please do every command besides ServerDirectory. Unless you are hosting a server. 
 ```console 
