@@ -37,14 +37,14 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   ```
   What each command does: 
   
-    ## watcher (0)
-    - Detects when you're on Minecraft, downloads from the cloud if needed, automatically retrieves your changes, and uploads them to the git. 
+  ## watcher (0)
+  - Detects when you're on Minecraft, downloads from the cloud if needed, automatically retrieves your changes, and uploads them to the git. 
 
-    ## watcher (1)
-    - Manual uploading and downloading. 
+  ## watcher (1)
+  - Manual uploading and downloading. 
 
-    ## watcher (2)
-    - Sets configuration data, this must be done first before using the rest of the application. 
+  ## watcher (2)
+  - Sets configuration data, this must be done first before using the rest of the application. 
 
 4. Examples: 
 
