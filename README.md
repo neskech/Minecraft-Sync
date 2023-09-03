@@ -57,7 +57,7 @@ git clone git@github.com:neskech/Minecraft-Sync.git
 ```
 
   ### Run the exectuable, located in the bin folder 
-   (Running the help command to see the available feature sets) 
+  ### (Running the help command to see the available feature sets) 
 
 ```console 
   cd bin
@@ -65,40 +65,40 @@ git clone git@github.com:neskech/Minecraft-Sync.git
 ```
 
   ### First step is to setup configuration
-   (Running the help command to see config options)
+  ### (Running the help command to see config options)
 
 ```console 
   ./index  -f 2 -h
 ```
 
 
-  ### We're not going to run the server ourselves, so we'll set up a singleplayer directory
-   If you're running this on WSL, then this directory must be via /mnt/
+   ### We're not going to run the server ourselves, so we'll set up a singleplayer directory
+   ### If you're running this on WSL, then this directory must be via /mnt/
 
    ```console
   ./index -f 2 -d <your singelplayer world directory>
   ```
 
   ### If you're running a server, then use this
-  Unlike the singleplayer directory, this must be OUTSIDE your world/ folder 
+  ### Unlike the singleplayer directory, this must be OUTSIDE your world/ folder 
   ```console    
   ./index -f 2 -s <your server directory>
   ```
 
   ### Set username. If other people are playing, they'll be alerted that you're online
-  With this name 
+  ### With this name 
 ```console
   ./index -f 2 -u <username>
 ```
 
   ### Set your sync directory. This will be the central place where your world syncs
-  If the directory doesn't exist, the app will make it for you
+  ### If the directory doesn't exist, the app will make it for you
   ```console
   ./index -f 2 -a <your sync directory>
   ```
 
   ### Set the github repo url. This'll be the repository that's used to synchronize
-  between you and your friends
+  ### between you and your friends
   ```console
   ./index -r <your git repository url>
   ```
@@ -121,8 +121,8 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   ```
 
   ### If you want to automate this process, then use feature set 2
-   Using the -c flag will automatically download starting out
-   Then it will wait for you to open and close minecraft, uploading
+  ### Using the -c flag will automatically download starting out
+  ### Then it will wait for you to open and close minecraft, uploading
    at the end
   ```console
   ./index -f 2
