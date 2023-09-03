@@ -104,7 +104,7 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   ```
 
   ### Set your minecraft process name. You can find the process name
-  by going into your task manager. For vanilla minecraft, just type 'minecraft'
+  ### by going into your task manager. For vanilla minecraft, just type 'minecraft'
   ```console
   ./index -p <your process name>
   ```
