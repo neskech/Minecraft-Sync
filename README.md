@@ -51,23 +51,28 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   git clone https://github.com/neskech/Minecraft-Sync.git
 
   # If you want to rebuild the executable
+
   npm run build
 
   # Run the exectuable, located in the bin folder
   # (Running the help command to see the available feature sets)
+
   cd bin
   ./index -H
 
   # First step is to setup configuration
   # (Running the help command to see config options)
+
   ./index  -f 2 -h
 
   # We're not going to run the server ourselves, so we'll set up a singleplayer directory
   # If you're running this on WSL, then this directory must be via /mnt/
+
   ./index -f 2 -d <your singelplayer world directory>
 
   # If you're running a server, then use this
   # Unlike the singleplayer directory, this must be OUTSIDE your world/ folder
+
   ./index -f 2 -s <your server directory>
 
   
