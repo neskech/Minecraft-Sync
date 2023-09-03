@@ -45,7 +45,7 @@ git clone git@github.com:neskech/Minecraft-Sync.git
 
   ## Configuration (f = 2)
   - Sets configuration data, this must be done first before using the rest of the application. 
-
+-----------
 4. Examples: 
 
 
