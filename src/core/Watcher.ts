@@ -7,6 +7,7 @@ import {
   assertLegalArgs,
   assertRequiredArgs,
   setupSyncDirectory,
+  mutateConfig,
 } from '../util/IO'
 import { exit } from 'process'
 import {
@@ -128,7 +129,9 @@ export default async function main() {
   const noConfirmation = args.confirmation ?? false
 
   const isSynced = (await isInSync(syncDir)).unwrap()
-  if (!isSynced) {
+  if (!isSynced || config.firstTime) {
+    if (config.firstTime) mutateConfig('firstTime', 'false').unwrap()
+
     if (noConfirmation) {
       logDebug('Your world is out of sync. Retrieving data from the cloud...')
       ;(await download(dir, syncDir, args.useServer)).unwrap()
@@ -138,7 +141,7 @@ export default async function main() {
         ['y', 'n'],
       )
       if (answer == 'y') (await download(dir, syncDir, args.useServer)).unwrap()
-      else return
+      else return 
     }
   }
 

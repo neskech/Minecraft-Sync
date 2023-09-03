@@ -42,17 +42,15 @@ export function execCommand(cmdStr: string): Promise<Result<string, string>> {
 }
 
 export function searchForFile(dir: string, name: string): Option<string> {
-    const files = readdirSync(dir)
-    for (const file of files) {
-      const full = makeFullPath(`${dir}/${file}`)
+  const files = readdirSync(dir)
+  for (const file of files) {
+    const full = makeFullPath(`${dir}/${file}`)
 
-      if (statSync(full).isDirectory())
-        return searchForFile(`${dir}/${file}`, name)
-      else if (file == name)
-        return Some(full)
-    }
+    if (statSync(full).isDirectory()) return searchForFile(`${dir}/${file}`, name)
+    else if (file == name) return Some(full)
+  }
 
-    return None()
+  return None()
 }
 
 export async function dialogBox(
@@ -60,8 +58,7 @@ export async function dialogBox(
   title: string,
 ): Promise<Result<Unit, string>> {
   const file = searchForFile('.', 'Main.java')
-  if (file.isNone())
-    return Err('Could not find java file')
+  if (file.isNone()) return Err('Could not find java file')
 
   const result = await execCommand(`java ../src/Main.java ${content} ${title}`)
 
@@ -129,13 +126,10 @@ export function assertRequiredArgs(args: cmdArgs.CommandLineOptions, set: string
 
 function repo(s: string): Option<string> {
   let start = -1
-  if (s.includes('https://'))
-    start = s.indexOf('https://') + 'https://'.length
-  else if (s.includes('git@'))
-    start = s.indexOf('git@') + 'git@'.length
+  if (s.includes('https://')) start = s.indexOf('https://') + 'https://'.length
+  else if (s.includes('git@')) start = s.indexOf('git@') + 'git@'.length
 
-  if (start == -1)
-    return None()
+  if (start == -1) return None()
 
   const end = s.indexOf('.git')
   return Some(s.substring(start, end))
@@ -150,8 +144,7 @@ export async function getCurrentRepoOrigin(
   const stdout = res.unwrap()
   const s = repo(stdout)
 
-  if (s.isNone())
-    return Err(`Invalid repo ${syncDir}`)
+  if (s.isNone()) return Err(`Invalid repo ${syncDir}`)
 
   return Ok(s.unwrap())
 }
@@ -175,24 +168,24 @@ export async function setupSyncDirectory(
   if (existsSync(`${syncDir}/.git`))
     rmSync(`${syncDir}/.git`, { recursive: true, force: true })
 
-  await execCommand(`cd ${syncDir} && git config pull.rebase true`)
-
-  const res1 = await execCommand(`cd ${syncDir} && git init -b main`)
+  const res1 = await execCommand(`cd ${syncDir} && git clone ${repoLink} .`)
   if (res1.isErr()) return Err(res1.unwrapErr())
 
-  const res2 = await execCommand(`cd ${syncDir} && git remote add origin ${repoLink}`)
+  const res2 = await execCommand(`cd ${syncDir} && git config pull.rebase true`)
   if (res2.isErr()) return Err(res2.unwrapErr())
+
+  if (!existsSync(`${syncDir}/playerData.json`))
+    writeFileSync(`${syncDir}/playerData.json`, JSON.stringify({}))
+  if (!existsSync(`${syncDir}/worldFiles`))
+    mkdirSync(`${syncDir}/worldFiles`)
 
   writeFileSync(`${syncDir}/playerData.json`, JSON.stringify({}))
   const res3 = await execCommand(`cd ${syncDir} && git add . && git commit -m "dummy"`)
   if (res3.isErr()) return Err(res3.unwrapErr())
 
-  const res4 = await execCommand(
-    `cd ${syncDir} && git push origin main --force`,
-  )
+  const res4 = await execCommand(`cd ${syncDir} && git push origin main`)
   if (res4.isErr()) return Err(res4.unwrapErr())
 
-  mutateConfig('firstTime', 'true').unwrap()
   return Ok(unit)
 }
 
@@ -202,7 +195,7 @@ type Config = {
   serverDirectory: string
   syncDirectory: string
   repoLink: string
-  minecraftProcessName: string,
+  minecraftProcessName: string
   firstTime: boolean
 }
 
@@ -215,7 +208,10 @@ export function mutateConfig(
   value: string,
 ): Result<Unit, string> {
   const f = makeFullPath('./config.json')
-  if (!existsSync(f)) appendFileSync(f, JSON.stringify({}))
+  if (!existsSync(f)) {
+    appendFileSync(f, JSON.stringify({}))
+    mutateConfig('firstTime', 'true').unwrap()
+  }
 
   if (
     property.includes('Directory') &&
@@ -225,7 +221,7 @@ export function mutateConfig(
     return Err(`The directory ${value} does not exist`)
   }
 
-  const requiredSubFolders = ['world', 'wold_nether', 'world_the_end']
+  const requiredSubFolders = ['world', 'world_nether', 'world_the_end']
   if (
     property == 'serverDirectory' &&
     !includesAll(readdirSync(value), requiredSubFolders)
@@ -234,6 +230,9 @@ export function mutateConfig(
     const notPresent = requiredSubFolders.filter((f) => !subFiles.includes(f))
     return Err(`Server directory is missing the required sub folders: ${notPresent}`)
   }
+
+  if (property == 'repoLink' || property == 'syncDirectory')
+    mutateConfig('firstTime', 'true').unwrap()
 
   const content = readFileSync(makeFullPath('./config.json'), {
     encoding: 'utf-8',
@@ -267,7 +266,9 @@ export function getConfig(needServer: boolean): Result<Config, string> {
     })
     if (notThere.length > 0)
       return Err(
-        `Propertie(s) ${notThere.join(', ')} missing from config file. Try filling them out with feature set 2`,
+        `Propertie(s) ${notThere.join(
+          ', ',
+        )} missing from config file. Try filling them out with feature set 2`,
       )
 
     const dontExist = properties.filter((p) => {
@@ -282,8 +283,10 @@ export function getConfig(needServer: boolean): Result<Config, string> {
       )
 
     if (!result.minecraftProcessName)
-        return Err('Minecraft process name not found in configuration file. Try filling it out with feature set 2')
-    
+      return Err(
+        'Minecraft process name not found in configuration file. Try filling it out with feature set 2',
+      )
+
     return Ok(result as Config)
   } catch (e) {
     return Err("Couldn't read config file")

@@ -187,13 +187,13 @@ export async function download(
 
   if (!existsSync(`${syncDir}/worldData.zip`)) return Err('No zip file to download from')
 
-  deleteDirIfContents(`${syncDir}/wolrdFiles`)
+  deleteDirIfContents(`${syncDir}/worldFiles`)
 
   createReadStream(`${syncDir}/worldData.zip`)
-    .pipe(Extract({ path: `${syncDir}/wolrdFiles` }))
+    .pipe(Extract({ path: `${syncDir}/worldFiles` }))
     .on('close', () => {
       const worldName = getWorldNameFromWorldDirectory(dir)
-      const isSourceServer = isServerDirectory(`${syncDir}/wolrdFiles`)
+      const isSourceServer = isServerDirectory(`${syncDir}/worldFiles`)
 
       /**
        * Rename the old directory backup, deleting any other backup worlds
@@ -209,50 +209,54 @@ export async function download(
       }
 
       if (isSourceServer && !isDestinationServer) {
+        console.log('4')
         /**
          * Move the DIM files from the nether and the end into
          * the main world folder. Then move that folder over into
          * the singleplayer directory
          */
         moveSync(
-          `${syncDir}/wolrdFiles/world_nether/DIM1`,
-          `${syncDir}/wolrdFiles/world/DIM1`,
+          `${syncDir}/worldFiles/world_nether/DIM1`,
+          `${syncDir}/worldFiles/world/DIM1`,
         )
         moveSync(
-          `${syncDir}/wolrdFiles/world_the_end/DIM-1`,
-          `${syncDir}/wolrdFiles/world/DIM-1`,
+          `${syncDir}/worldFiles/world_the_end/DIM-1`,
+          `${syncDir}/worldFiles/world/DIM-1`,
         )
-        renameSync(`${syncDir}/wolrdFiles/world`, `${syncDir}/wolrdFiles/${worldName}`)
-        moveSync(`${syncDir}/wolrdFiles/${worldName}`, dir)
+        renameSync(`${syncDir}/worldFiles/world`, `${syncDir}/worldFiles/${worldName}`)
+        moveSync(`${syncDir}/worldFiles/${worldName}`, dir)
       } else if (!isSourceServer && isDestinationServer) {
+        console.log('3')
         /**
          * Move DIM1 (nether) and DIM-1 (end) directly into the server folders.
          * Then, once those folders are gone, move over the entire folder. Rename
          * the worldFiles folder to just world so we can replace
          */
-        moveSync(`${syncDir}/wolrdFiles/DIM1`, `${dir}/world_nether`, {
+        moveSync(`${syncDir}/worldFiles/DIM1`, `${dir}/world_nether`, {
           overwrite: true,
         })
-        moveSync(`${syncDir}/wolrdFiles/DIM-1`, `${dir}/world_the_end`, {
+        moveSync(`${syncDir}/worldFiles/DIM-1`, `${dir}/world_the_end`, {
           overwrite: true,
         })
 
-        renameSync(`${syncDir}/wolrdFiles`, `${syncDir}/world`)
+        renameSync(`${syncDir}/worldFiles`, `${syncDir}/world`)
         moveSync(`${syncDir}/world`, dir, {
           overwrite: true,
         })
-        renameSync(`${syncDir}/world`, `${syncDir}/wolrdFiles`)
+        renameSync(`${syncDir}/world`, `${syncDir}/worldFiles`)
       } else if (isSourceServer && isDestinationServer) {
-        moveSync(`${syncDir}/wolrdFiles/world`, dir, { overwrite: true })
-        moveSync(`${syncDir}/wolrdFiles/world_nether`, dir, { overwrite: true })
-        moveSync(`${syncDir}/wolrdFiles/world_the_end`, dir, { overwrite: true })
+        console.log('2')
+        moveSync(`${syncDir}/worldFiles/world`, dir, { overwrite: true })
+        moveSync(`${syncDir}/worldFiles/world_nether`, dir, { overwrite: true })
+        moveSync(`${syncDir}/worldFiles/world_the_end`, dir, { overwrite: true })
       } else {
-        renameSync(`${syncDir}/wolrdFiles`, `${syncDir}/${worldName}`)
+        console.log('1')
+        renameSync(`${syncDir}/worldFiles`, `${syncDir}/${worldName}`)
         moveSync(`${syncDir}/${worldName}`, path.join(dir, '../'), { overwrite: true })
-        mkdirsSync(`${syncDir}/wolrdFiles`)
+        mkdirsSync(`${syncDir}/worldFiles`)
       }
 
-      deleteDirIfContents(`${syncDir}/wolrdFiles`)
+      deleteDirIfContents(`${syncDir}/worldFiles`)
     })
 
   return Ok(unit)

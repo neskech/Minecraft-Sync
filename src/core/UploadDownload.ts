@@ -3,6 +3,7 @@ import {
   assertLegalArgs,
   assertRequiredArgs,
   getConfig,
+  mutateConfig,
   setupSyncDirectory,
   userInputOnlyValid,
 } from '../util/IO'
@@ -86,10 +87,13 @@ export default async function main() {
   }
 
   const isSynced = (await isInSync(syncDir)).unwrap()
-  if (!isSynced) {
+  if (!isSynced || config.firstTime) {
     console.warn(
       'You current world is out of sync with the cloud version! Consider downloading',
     )
+
+    if (config.firstTime)
+      mutateConfig('firstTime', 'false').unwrap()
   }
 
   const answer = userInputOnlyValid(`Are you sure you want to ${op}load?`, ['y', 'n'])
