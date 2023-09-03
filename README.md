@@ -25,7 +25,7 @@ git clone https://github.com/neskech/Minecraft-Sync.git
 git clone git@github.com:neskech/Minecraft-Sync.git 
 ```
 
-### 1b. If you dont want to build the app yourself, then download one of the executables and run that instead
+### 1b. If you dont want to build the app yourself then download one of these executables [Link](https://github.com/neskech/Minecraft-Sync/releases/tag/release)
 
 ### 2. Run this command in order to set the configuration of the application, please do every command besides ServerDirectory. Unless you are hosting a server. 
 ```console 
