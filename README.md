@@ -127,6 +127,5 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   ```console
   ./index -f 2
   ```
-```
 
 
