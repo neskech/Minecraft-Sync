@@ -52,6 +52,7 @@ If you're doing this on windows make sure to include the .exe extension
 
   ### If you want to rebuild the executable
 ```console
+  npm i
   npm run build
 ```
 
