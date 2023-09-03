@@ -29,6 +29,7 @@ import {
   deleteDirIfContents,
   execCommand,
   makeFullPath,
+  moveFodlerOverwrite,
 } from './IO'
 
 function isServerDirectory(filesDir: string): boolean {
@@ -209,7 +210,6 @@ export async function download(
       }
 
       if (isSourceServer && !isDestinationServer) {
-        console.log('4')
         /**
          * Move the DIM files from the nether and the end into
          * the main world folder. Then move that folder over into
@@ -224,35 +224,26 @@ export async function download(
           `${syncDir}/worldFiles/world/DIM-1`,
         )
         renameSync(`${syncDir}/worldFiles/world`, `${syncDir}/worldFiles/${worldName}`)
-        moveSync(`${syncDir}/worldFiles/${worldName}`, dir)
+        moveFodlerOverwrite(`${syncDir}/worldFiles/${worldName}`, dir)
       } else if (!isSourceServer && isDestinationServer) {
-        console.log('3')
         /**
          * Move DIM1 (nether) and DIM-1 (end) directly into the server folders.
          * Then, once those folders are gone, move over the entire folder. Rename
          * the worldFiles folder to just world so we can replace
          */
-        moveSync(`${syncDir}/worldFiles/DIM1`, `${dir}/world_nether`, {
-          overwrite: true,
-        })
-        moveSync(`${syncDir}/worldFiles/DIM-1`, `${dir}/world_the_end`, {
-          overwrite: true,
-        })
+        moveFodlerOverwrite(`${syncDir}/worldFiles/DIM1`, `${dir}/world_nether`)
+        moveFodlerOverwrite(`${syncDir}/worldFiles/DIM-1`, `${dir}/world_the_end`)
 
         renameSync(`${syncDir}/worldFiles`, `${syncDir}/world`)
-        moveSync(`${syncDir}/world`, dir, {
-          overwrite: true,
-        })
+        moveFodlerOverwrite(`${syncDir}/world`, dir)
         renameSync(`${syncDir}/world`, `${syncDir}/worldFiles`)
       } else if (isSourceServer && isDestinationServer) {
-        console.log('2')
-        moveSync(`${syncDir}/worldFiles/world`, dir, { overwrite: true })
-        moveSync(`${syncDir}/worldFiles/world_nether`, dir, { overwrite: true })
-        moveSync(`${syncDir}/worldFiles/world_the_end`, dir, { overwrite: true })
+        moveFodlerOverwrite(`${syncDir}/worldFiles/world`, dir)
+        moveFodlerOverwrite(`${syncDir}/worldFiles/world_nether`, dir)
+        moveFodlerOverwrite(`${syncDir}/worldFiles/world_the_end`, dir)
       } else {
-        console.log('1')
         renameSync(`${syncDir}/worldFiles`, `${syncDir}/${worldName}`)
-        moveSync(`${syncDir}/${worldName}`, path.join(dir, '../'), { overwrite: true })
+        moveFodlerOverwrite(`${syncDir}/${worldName}`, path.join(dir, '../'))
         mkdirsSync(`${syncDir}/worldFiles`)
       }
 

@@ -19,6 +19,7 @@ import cmdArgs from 'command-line-args'
 import { includesAll, remove } from '../lib/listUtils'
 import { cwd, exit } from 'process'
 import { strip } from '../lib/Misc'
+import { moveSync, rmdirSync } from 'fs-extra'
 const prompt_ = require('prompt-sync')({ sigint: true })
 
 export function deleteDirIfContents(dir: string) {
@@ -27,6 +28,17 @@ export function deleteDirIfContents(dir: string) {
     const fullPath = makeFullPath(`${dir}/${file}`)
     rmSync(fullPath, { recursive: true })
   }
+}
+
+export function moveFodlerOverwrite(srcDir: string, destDir: string) {
+  if (srcDir.at(-1) == '/') srcDir = srcDir.substring(0, srcDir.length - 1)
+  if (destDir.at(-1) == '/') destDir = destDir.substring(0, destDir.length - 1)
+
+  const folderName = srcDir.substring(srcDir.lastIndexOf('/') + 1)
+
+  if (existsSync(`${destDir}/${folderName}`)) rmSync(`${destDir}/${folderName}`, {recursive: true})
+
+  moveSync(srcDir, `${destDir}/${folderName}`)
 }
 
 export function execCommand(cmdStr: string): Promise<Result<string, string>> {
@@ -176,8 +188,7 @@ export async function setupSyncDirectory(
 
   if (!existsSync(`${syncDir}/playerData.json`))
     writeFileSync(`${syncDir}/playerData.json`, JSON.stringify({}))
-  if (!existsSync(`${syncDir}/worldFiles`))
-    mkdirSync(`${syncDir}/worldFiles`)
+  if (!existsSync(`${syncDir}/worldFiles`)) mkdirSync(`${syncDir}/worldFiles`)
 
   writeFileSync(`${syncDir}/playerData.json`, JSON.stringify({}))
   const res3 = await execCommand(`cd ${syncDir} && git add . && git commit -m "dummy"`)
