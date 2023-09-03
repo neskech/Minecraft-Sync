@@ -49,6 +49,7 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   - Sets configuration data, this must be done first before using the rest of the application. 
 -----------
 ## 4. Example run through
+If you're doing this on windows make sure to include the .exe extension
 ```console
   git clone https://github.com/neskech/Minecraft-Sync.git
 ```
@@ -63,6 +64,7 @@ git clone git@github.com:neskech/Minecraft-Sync.git
 
 ```console 
   cd bin
+  chmod +x index
   ./index -H
 ```
 
