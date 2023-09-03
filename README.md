@@ -46,75 +46,87 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   ## Configuration (f = 2)
   - Sets configuration data, this must be done first before using the rest of the application. 
 -----------
-### 4. Example run through
+## 4. Example run through
 ```console
   git clone https://github.com/neskech/Minecraft-Sync.git
 ```
 
-  <!-- If you want to rebuild the executable -->
+  ### If you want to rebuild the executable
 ```console
   npm run build
 ```
 
-  <!-- Run the exectuable, located in the bin folder
-    (Running the help command to see the available feature sets) -->
+  ### Run the exectuable, located in the bin folder 
+   (Running the help command to see the available feature sets) 
 
 ```console 
   cd bin
   ./index -H
 ```
 
-  <!-- First step is to setup configuration
-   (Running the help command to see config options) -->
+  ### First step is to setup configuration
+   (Running the help command to see config options)
 
 ```console 
   ./index  -f 2 -h
 ```
 
 
-  <!-- We're not going to run the server ourselves, so we'll set up a singleplayer directory
-   If you're running this on WSL, then this directory must be via /mnt/ -->
+  ### We're not going to run the server ourselves, so we'll set up a singleplayer directory
+   If you're running this on WSL, then this directory must be via /mnt/
 
    ```console
   ./index -f 2 -d <your singelplayer world directory>
   ```
 
-  <!-- If you're running a server, then use this
-      Unlike the singleplayer directory, this must be OUTSIDE your world/ folder -->
+  ### If you're running a server, then use this
+  Unlike the singleplayer directory, this must be OUTSIDE your world/ folder 
   ```console    
   ./index -f 2 -s <your server directory>
   ```
 
-  <!-- Set username. If other people are playing, they'll be alerted that you're online
-       With this name -->
+  ### Set username. If other people are playing, they'll be alerted that you're online
+  With this name 
 ```console
   ./index -f 2 -u <username>
 ```
 
-  # Set your sync directory. This will be the central place where your world syncs
-  # If the directory doesn't exist, the app will make it for you
+  ### Set your sync directory. This will be the central place where your world syncs
+  If the directory doesn't exist, the app will make it for you
+  ```console
   ./index -f 2 -a <your sync directory>
+  ```
 
-  # Set the github repo url. This'll be the repository that's used to synchronize
-  # between you and your friends
+  ### Set the github repo url. This'll be the repository that's used to synchronize
+  between you and your friends
+  ```console
   ./index -r <your git repository url>
+  ```
 
-  # Set your minecraft process name. You can find the process name
-  # by going into your task manager. For vanilla minecraft, just type 'minecraft'
+  ### Set your minecraft process name. You can find the process name
+  by going into your task manager. For vanilla minecraft, just type 'minecraft'
+  ```console
   ./index -p <your process name>
+  ```
 
-  # Now that configuration is done, you're all set!
+  ### Now that configuration is done, you're all set!
 
-  # If your friends have already made some progress, try downloading from them
+  ### If your friends have already made some progress, try downloading from them
+  ```console
   ./index -f 1 -o down
-  # If you want to manually upload, then do this
+  ```
+  ### If you want to manually upload, then do this
+  ```console
   ./index -f 1 -o up
+  ```
 
-  # If you want to automate this process, then use feature set 2
-  # Using the -c flag will automatically download starting out
-  # Then it will wait for you to open and close minecraft, uploading
-  # at the end
+  ### If you want to automate this process, then use feature set 2
+   Using the -c flag will automatically download starting out
+   Then it will wait for you to open and close minecraft, uploading
+   at the end
+  ```console
   ./index -f 2
+  ```
 ```
 
 
