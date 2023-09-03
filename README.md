@@ -86,7 +86,19 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   # Set your minecraft process name. You can find the process name
   # by going into your task manager. For vanilla minecraft, just type 'minecraft'
   ./index -p <your process name>
-  
+
+  # Now that configuration is done, you're all set!
+
+  # If your friends have already made some progress, try downloading from them
+  ./index -f 1 -o down
+  # If you want to manually upload, then do this
+  ./index -f 1 -o up
+
+  # If you want to automate this process, then use feature set 2
+  # Using the -c flag will automatically download starting out
+  # Then it will wait for you to open and close minecraft, uploading
+  # at the end
+  ./index -f 2
 ```
 
 
