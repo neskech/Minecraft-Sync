@@ -16,8 +16,8 @@ To get started run the executable in the bin/ directory (npm run build)
 -------------------
 1. Clone git repo, click on the clone button use https or SSH, either work. 
 ---------------------------------------------------------------------------
-  ```console git clone https://github.com/neskech/Minecraft-Sync.git```
-
-  ``` console git@github.com:neskech/Minecraft-Sync.git ```
-
+```console
+foo@bar:~$ whoami
+foo
+```
 2. 
