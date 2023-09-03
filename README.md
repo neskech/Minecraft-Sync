@@ -73,26 +73,26 @@ git clone git@github.com:neskech/Minecraft-Sync.git
 
 
    ### We're not going to run the server ourselves, so we'll set up a singleplayer directory
-   ### If you're running this on WSL, then this directory must be via /mnt/
+   ### if you're running this on WSL, then this directory must be via /mnt/
 
    ```console
   ./index -f 2 -d <your singelplayer world directory>
   ```
 
   ### If you're running a server, then use this
-  ### Unlike the singleplayer directory, this must be OUTSIDE your world/ folder 
+  ### unlike the singleplayer directory, this must be OUTSIDE your world/ folder 
   ```console    
   ./index -f 2 -s <your server directory>
   ```
 
   ### Set username. If other people are playing, they'll be alerted that you're online
-  ### With this name 
+  ### with this name 
 ```console
   ./index -f 2 -u <username>
 ```
 
   ### Set your sync directory. This will be the central place where your world syncs
-  ### If the directory doesn't exist, the app will make it for you
+  ### if the directory doesn't exist, the app will make it for you
   ```console
   ./index -f 2 -a <your sync directory>
   ```
@@ -121,9 +121,9 @@ git clone git@github.com:neskech/Minecraft-Sync.git
   ```
 
   ### If you want to automate this process, then use feature set 2
-  ### Using the -c flag will automatically download starting out
-  ### Then it will wait for you to open and close minecraft, uploading
-   at the end
+  ### using the -c flag will automatically download starting out
+  ### then it will wait for you to open and close minecraft, uploading
+  ### at the end
   ```console
   ./index -f 2
   ```
